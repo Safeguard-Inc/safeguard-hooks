@@ -1,0 +1,13 @@
+[package]
+name = "safeguard-hook-core"
+description = "Pure domain model for the Safeguard enforcement layer: operations, parties, decisions, and machine-readable rejection reasons."
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[dependencies]
