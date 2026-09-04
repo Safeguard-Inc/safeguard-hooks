@@ -348,6 +348,26 @@ mod tests {
         }
     }
 
+    /// Token-agnostic deny-list policy: blocks one account on every token it
+    /// is asked about. Used by the multi-token tests to show that a single
+    /// policy can serve several bound tokens while freeze and binding state
+    /// stay isolated per token.
+    #[contract]
+    struct MultiTokenPolicy;
+
+    #[contractimpl]
+    impl MultiTokenPolicy {
+        pub fn __constructor(e: Env, blocked: Option<Address>) {
+            e.storage().instance().set(&symbol_short!("blkd"), &blocked);
+        }
+
+        pub fn is_authorized(e: Env, account: Address, _token: Address) -> bool {
+            let blocked: Option<Address> =
+                e.storage().instance().get(&symbol_short!("blkd")).unwrap();
+            Some(account) != blocked
+        }
+    }
+
     /// A registered, configured, single-token deployment for tests: an
     /// allow-all policy, SAC passthrough on, and two SAC-authorized accounts.
     struct Fixture {
@@ -390,6 +410,38 @@ mod tests {
 
     fn policy_allowing(env: &Env, token: &Address) -> Address {
         env.register(DenylistPolicy, (None::<Address>, token.clone()))
+    }
+
+    fn try_before_merge(
+        env: &Env,
+        hooks: &Address,
+        token: &Address,
+        account: &Address,
+    ) -> Result<(), ContractError> {
+        let func = Symbol::new(env, "before_merge");
+        let args = (token.clone(), account.clone()).into_val(env);
+        match env.try_invoke_contract::<(), ContractError>(hooks, &func, args) {
+            Ok(_) => Ok(()),
+            Err(Ok(err)) => Err(err),
+            Err(Err(_)) => panic!("invocation failed at the host level"),
+        }
+    }
+
+    fn try_before_transfer_from(
+        env: &Env,
+        hooks: &Address,
+        token: &Address,
+        spender: &Address,
+        from: &Address,
+        to: &Address,
+    ) -> Result<(), ContractError> {
+        let func = Symbol::new(env, "before_transfer_from");
+        let args = (token.clone(), spender.clone(), from.clone(), to.clone()).into_val(env);
+        match env.try_invoke_contract::<(), ContractError>(hooks, &func, args) {
+            Ok(_) => Ok(()),
+            Err(Ok(err)) => Err(err),
+            Err(Err(_)) => panic!("invocation failed at the host level"),
+        }
     }
 
     fn try_before_deposit(
@@ -699,6 +751,135 @@ mod tests {
         assert!(!client.token_is_bound(&f.token));
         assert_eq!(
             try_before_deposit(&f.env, &f.hooks, &f.token, &f.alice, &f.bob),
+            Err(ContractError::UnboundToken)
+        );
+    }
+
+    #[test]
+    fn merge_and_delegated_hooks_are_gated() {
+        let f = fixture();
+        let client = ComplianceHooksClient::new(&f.env, &f.hooks);
+        let spender = Address::generate(&f.env);
+
+        // Merge and a compliant delegation pass.
+        client.mock_all_auths().before_merge(&f.token, &f.alice);
+        assert_eq!(
+            try_before_transfer_from(&f.env, &f.hooks, &f.token, &spender, &f.alice, &f.bob),
+            Ok(())
+        );
+
+        // A frozen spender does not stop the delegation (policy-only role);
+        // a frozen `from` does.
+        client.mock_all_auths().freeze(&f.token, &spender);
+        assert_eq!(
+            try_before_transfer_from(&f.env, &f.hooks, &f.token, &spender, &f.alice, &f.bob),
+            Ok(())
+        );
+        // A frozen `from` stops the delegation, and a frozen account cannot
+        // merge either.
+        client.mock_all_auths().freeze(&f.token, &f.alice);
+        assert_eq!(
+            try_before_transfer_from(&f.env, &f.hooks, &f.token, &spender, &f.alice, &f.bob),
+            Err(ContractError::AccountFrozen)
+        );
+        assert_eq!(
+            try_before_merge(&f.env, &f.hooks, &f.token, &f.alice),
+            Err(ContractError::AccountFrozen)
+        );
+
+        // Unfreezing restores both flows.
+        client.mock_all_auths().unfreeze(&f.token, &f.alice);
+        client.mock_all_auths().before_merge(&f.token, &f.alice);
+        assert_eq!(
+            try_before_transfer_from(&f.env, &f.hooks, &f.token, &spender, &f.alice, &f.bob),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn blocked_spender_is_rejected_at_the_hook() {
+        let env = Env::new_with_config(EnvTestConfig {
+            capture_snapshot_at_drop: false,
+        });
+        let hooks = env.register(ComplianceHooks, ());
+        let token = Address::generate(&env);
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+        let spender = Address::generate(&env);
+        let sac = env.register(MockSac, (&alice, &bob));
+        let policy = policy_address(&env, &spender, &token); // Spender blocked.
+
+        let client = ComplianceHooksClient::new(&env, &hooks);
+        client.initialize(&Address::generate(&env));
+        client.mock_all_auths().set_config(&Some(policy), &true);
+        client.mock_all_auths().bind_token(&token, &Some(sac));
+
+        assert_eq!(
+            try_before_transfer_from(&env, &hooks, &token, &spender, &alice, &bob),
+            Err(ContractError::PolicyDenied)
+        );
+    }
+
+    #[test]
+    fn multi_token_binding_keeps_enforcement_isolated() {
+        let env = Env::new_with_config(EnvTestConfig {
+            capture_snapshot_at_drop: false,
+        });
+        let hooks = env.register(ComplianceHooks, ());
+        let admin = Address::generate(&env);
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+        let token_a = Address::generate(&env);
+        let token_b = Address::generate(&env);
+        let sac_a = env.register(MockSac, (&alice, &bob));
+        let sac_b = env.register(MockSac, (&alice, &bob));
+        // One policy serves both bound tokens; it blocks Bob everywhere.
+        let policy = env.register(MultiTokenPolicy, (Some(bob.clone()),));
+
+        let client = ComplianceHooksClient::new(&env, &hooks);
+        client.initialize(&admin);
+        client.mock_all_auths().set_config(&Some(policy), &true);
+        client.mock_all_auths().bind_token(&token_a, &Some(sac_a));
+        client.mock_all_auths().bind_token(&token_b, &Some(sac_b));
+
+        // Both tokens admit the same compliant flow…
+        assert_eq!(
+            try_before_deposit(&env, &hooks, &token_a, &alice, &alice),
+            Ok(())
+        );
+        assert_eq!(
+            try_before_deposit(&env, &hooks, &token_b, &alice, &alice),
+            Ok(())
+        );
+        // …and reject the same blocked party.
+        assert_eq!(
+            try_before_deposit(&env, &hooks, &token_a, &alice, &bob),
+            Err(ContractError::PolicyDenied)
+        );
+        assert_eq!(
+            try_before_deposit(&env, &hooks, &token_b, &alice, &bob),
+            Err(ContractError::PolicyDenied)
+        );
+
+        // Freeze Alice on Token A only: Token B is untouched, so the same
+        // operation still passes there (multi-token freeze isolation through
+        // the full contract surface).
+        client.mock_all_auths().freeze(&token_a, &alice);
+        assert!(client.is_frozen(&token_a, &alice));
+        assert!(!client.is_frozen(&token_b, &alice));
+        assert_eq!(
+            try_before_deposit(&env, &hooks, &token_a, &alice, &alice),
+            Err(ContractError::AccountFrozen)
+        );
+        assert_eq!(
+            try_before_deposit(&env, &hooks, &token_b, &alice, &alice),
+            Ok(())
+        );
+
+        // Unbinding Token B revokes scope for B alone.
+        client.mock_all_auths().unbind_token(&token_b);
+        assert_eq!(
+            try_before_deposit(&env, &hooks, &token_b, &alice, &alice),
             Err(ContractError::UnboundToken)
         );
     }
