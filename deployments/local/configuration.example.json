@@ -1,0 +1,20 @@
+{
+  "network": "local",
+  "rpc_url": "http://localhost:8000/rpc",
+  "network_passphrase": "Standalone Network ; February 2017",
+  "hooks_contract_id": "REPLACE_WITH_MINTED_LOCAL_HOOKS_ID",
+  "policy": { "contract_id": "REPLACE_WITH_MINTED_LOCAL_POLICY_ID" },
+  "sac_passthrough": false,
+  "admin": {
+    "public_key": "REPLACE_WITH_ADMIN_PUBLIC_KEY",
+    "stellar_identity": "admin"
+  },
+  "tokens": [
+    {
+      "alias": "usd",
+      "contract_id": "REPLACE_WITH_BOUND_TOKEN_ID",
+      "sac_contract_id": null
+    }
+  ],
+  "description": "Template for the containerized local network (deployments/README.md). Every stellar container start mints fresh ids; scripts/integration-local.sh prints them and safeguard-hooks deploy --save can record them here."
+}

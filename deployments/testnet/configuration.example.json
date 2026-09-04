@@ -1,0 +1,20 @@
+{
+  "network": "testnet",
+  "rpc_url": "https://soroban-testnet.stellar.org",
+  "network_passphrase": "Test SDF Network ; September 2015",
+  "hooks_contract_id": "REPLACE_WITH_TESTNET_HOOKS_ID",
+  "policy": { "contract_id": "REPLACE_WITH_TESTNET_POLICY_ID" },
+  "sac_passthrough": false,
+  "admin": {
+    "public_key": "REPLACE_WITH_ADMIN_PUBLIC_KEY",
+    "secret_key_env": "SAFEGUARD_ADMIN_SK"
+  },
+  "tokens": [
+    {
+      "alias": "usd",
+      "contract_id": "REPLACE_WITH_BOUND_TOKEN_ID",
+      "sac_contract_id": null
+    }
+  ],
+  "description": "Template for the public Testnet runbook (docs/testnet.md). Follow that runbook to mint real ids and copy this file to configuration.json. The admin secret key lives in the SAFEGUARD_ADMIN_SK env var only — never in this file. Confidential Tokens on Stellar are a developer preview; treat this deployment as rehearsal, not production."
+}

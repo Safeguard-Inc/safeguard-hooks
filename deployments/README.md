@@ -13,6 +13,16 @@ deployments/
   testnet/   → from the docs/testnet.md runbook
 ```
 
+Each environment holds a `configuration.example.json` template (copy it to
+`configuration.json` once ids exist); the actual `configuration.json` is a
+per-environment record, never committed with real admin secrets.
+
+> The spec structure once imagined `contracts.json`/`policy.json` beside
+> `configuration.json`. The enforcement deployment is a single wiring record
+> — the CLI's `Config` parses exactly one file per environment — so all ids
+> and flags live in `configuration.json`; splitting them across three files
+> would only let them drift.
+
 ## Shape
 
 `configuration.json` records the on-chain wiring that the admin commands in
