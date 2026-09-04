@@ -1,0 +1,17 @@
+[package]
+name = "safeguard-events"
+description = "Structured contract events emitted by the Safeguard enforcement contract; the evidence bridge to safeguard-audit."
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
