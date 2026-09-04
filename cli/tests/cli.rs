@@ -24,6 +24,7 @@ fn help_lists_the_operator_surface() {
         "unbind",
         "freeze",
         "unfreeze",
+        "deploy",
         "show",
         "errors",
     ] {

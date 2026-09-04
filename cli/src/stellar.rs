@@ -124,6 +124,53 @@ pub fn invoke_args(
     args
 }
 
+/// Builds `stellar contract deploy` argv for `wasm`.
+///
+/// `constructor` carries the contract constructor's parameters as
+/// `(name, formatted value)` pairs (rendered after `--`, like invoke args).
+pub fn deploy_args(
+    wasm: &str,
+    source: &str,
+    network: &str,
+    constructor: &[(&str, String)],
+) -> Vec<String> {
+    let mut args = vec![
+        "contract".into(),
+        "deploy".into(),
+        "--wasm".into(),
+        wasm.to_string(),
+        "--source".into(),
+        source.to_string(),
+        "--network".into(),
+        network.to_string(),
+    ];
+    if !constructor.is_empty() {
+        args.push("--".into());
+        for (name, value) in constructor {
+            args.push(format!("--{name}"));
+            args.push(value.clone());
+        }
+    }
+    args
+}
+
+/// Extracts the deployed contract id (`C` + 55 base32 chars) from a deploy's
+/// output. Deploy prints informational lines, `✅ Deployed!`, then the id on
+/// its own line.
+pub fn parse_deployed_id(stdout: &str) -> Option<String> {
+    stdout
+        .lines()
+        .map(str::trim)
+        .rev()
+        .find(|l| {
+            l.len() == 56
+                && l.starts_with('C')
+                && l.chars()
+                    .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+        })
+        .map(String::from)
+}
+
 /// Builds the argv that registers `network` in the stellar CLI config.
 pub fn network_add_args(network: &str, rpc_url: &str, passphrase: &str) -> Vec<String> {
     vec![
@@ -316,6 +363,45 @@ mod tests {
             &[("token", address("G…TOKEN")), ("sac", opt_address(None))],
         );
         assert_eq!(args[args.len() - 1], "null");
+    }
+
+    #[test]
+    fn deploy_argv_has_wasm_source_network_and_constructor_after_dashdash() {
+        let args = deploy_args(
+            "/tmp/hooks.wasm",
+            "admin",
+            "local",
+            &[("blocked", opt_address(Some("GBQZ…")))],
+        );
+        assert_eq!(
+            args,
+            [
+                "contract",
+                "deploy",
+                "--wasm",
+                "/tmp/hooks.wasm",
+                "--source",
+                "admin",
+                "--network",
+                "local",
+                "--",
+                "--blocked",
+                "\"GBQZ…\""
+            ]
+        );
+        // Without constructor args, nothing trails the network flag.
+        let plain = deploy_args("/tmp/hooks.wasm", "admin", "local", &[]);
+        assert_eq!(plain.len(), 8);
+        assert_eq!(plain[plain.len() - 1], "local");
+    }
+
+    #[test]
+    fn deployed_ids_are_parsed_from_the_output_tail() {
+        let id = format!("C{}", "A".repeat(55));
+        let stdout = format!("ℹ️  Uploading…\n✅ Deployed!\n{id}\n");
+        assert_eq!(parse_deployed_id(&stdout).as_deref(), Some(id.as_str()));
+        // Non-id lines (contract ids are C + 55 base32 chars) are ignored.
+        assert_eq!(parse_deployed_id("✅ Deployed!\nnope\n"), None);
     }
 
     #[test]

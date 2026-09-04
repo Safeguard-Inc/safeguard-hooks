@@ -20,7 +20,7 @@
 mod config;
 mod stellar;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::{Parser, Subcommand};
 
@@ -107,6 +107,32 @@ enum Command {
         #[arg(long)]
         account: String,
     },
+    /// Deploys and configures a fresh enforcement deployment from the config:
+    /// deploy hooks (and optionally a policy), then initialize → configure →
+    /// bind every configured token (deployment tooling).
+    Deploy {
+        /// `compliance-hooks` wasm to deploy.
+        #[arg(long)]
+        hooks_wasm: PathBuf,
+        /// `sample-policy` wasm to deploy as the policy.
+        #[arg(long)]
+        sample_policy_wasm: Option<PathBuf>,
+        /// Pin the deployed sample policy to deny this account (G…).
+        #[arg(long, requires = "sample_policy_wasm")]
+        policy_blocked: Option<String>,
+        /// Reuse an already-deployed policy contract instead of deploying one.
+        #[arg(long, conflicts_with_all = ["sample_policy_wasm", "no_policy"])]
+        policy_id: Option<String>,
+        /// Configure the hooks contract with no policy gate.
+        #[arg(long, conflicts_with_all = ["sample_policy_wasm", "policy_id"])]
+        no_policy: bool,
+        /// SAC-passthrough flag for the new config (default: config value).
+        #[arg(long)]
+        sac_passthrough: Option<bool>,
+        /// Write the freshly deployed contract ids back into the config file.
+        #[arg(long)]
+        save: bool,
+    },
     /// Reads on-chain enforcement state (read-only simulations).
     Show {
         /// Token alias to scope the reads to (defaults to all configured).
@@ -150,6 +176,7 @@ fn run(cli: &Cli) -> Result<(), String> {
     let source = config.admin_source(cli.source.as_deref())?;
     let app = App {
         config,
+        config_path: cli.config.clone(),
         runner,
         source,
     };
@@ -176,6 +203,33 @@ fn run(cli: &Cli) -> Result<(), String> {
         Command::Unbind { token } => app.unbind(token),
         Command::Freeze { token, account } => app.freeze(token, account),
         Command::Unfreeze { token, account } => app.unfreeze(token, account),
+        Command::Deploy {
+            hooks_wasm,
+            sample_policy_wasm,
+            policy_blocked,
+            policy_id,
+            no_policy,
+            sac_passthrough,
+            save,
+        } => {
+            let save_path = if *save {
+                Some(app.config_path.as_path())
+            } else {
+                None
+            };
+            run_deploy(
+                &app.runner,
+                &app.config,
+                save_path,
+                &app.source,
+                hooks_wasm,
+                sample_policy_wasm.as_deref(),
+                policy_blocked.as_deref(),
+                policy_id.as_deref(),
+                *no_policy,
+                *sac_passthrough,
+            )
+        }
         Command::Show { token, account } => app.show(token.as_deref(), account.as_deref()),
         Command::Errors { .. } => unreachable!(),
     }
@@ -184,6 +238,7 @@ fn run(cli: &Cli) -> Result<(), String> {
 /// The runtime context for one invocation.
 struct App {
     config: Config,
+    config_path: PathBuf,
     runner: Stellar,
     source: String,
 }
@@ -333,6 +388,139 @@ fn value_or<'a>(v: Option<&'a str>, fallback: &'a str) -> &'a str {
     v.filter(|s| !s.is_empty()).unwrap_or(fallback)
 }
 
+/// Runs a raw stellar CLI command against `runner`, decoding any revert on
+/// failure.
+fn send_raw<R: Runner>(runner: &R, args: &[String]) -> Result<stellar::RunOutcome, String> {
+    let outcome = runner.run(args)?;
+    if outcome.ok {
+        Ok(outcome)
+    } else {
+        Err(interpret(outcome)
+            .err()
+            .unwrap_or_else(|| "stellar CLI failed".into()))
+    }
+}
+
+/// Deploys a fresh enforcement deployment and configures it from the
+/// deployment config (one-command bring-up): deploy the hooks contract,
+/// optionally deploy or reuse a policy, then run the one-way lifecycle
+/// `initialize → set_config → bind_token` for every configured token.
+///
+/// Generic over the [`Runner`] so tests drive it with a scripted fake.
+/// `config_path` records the freshly minted ids back into the config file
+/// when present (`--save`); the wasm paths must already be built.
+#[allow(clippy::too_many_arguments)]
+fn run_deploy<R: Runner>(
+    runner: &R,
+    config: &Config,
+    config_path: Option<&Path>,
+    source: &str,
+    hooks_wasm: &Path,
+    sample_policy_wasm: Option<&Path>,
+    policy_blocked: Option<&str>,
+    policy_id: Option<&str>,
+    no_policy: bool,
+    sac_passthrough: Option<bool>,
+) -> Result<(), String> {
+    let network = &config.network;
+    let hooks_wasm = hooks_wasm.to_string_lossy().into_owned();
+    if !Path::new(&hooks_wasm).exists() {
+        return Err(format!(
+            "hooks wasm not found at {hooks_wasm} — build it with \
+             `cargo build --target wasm32v1-none --release -p compliance-hooks`"
+        ));
+    }
+
+    // 1. Deploy the hooks contract.
+    println!("deploying compliance-hooks…");
+    let out = send_raw(
+        runner,
+        &stellar::deploy_args(&hooks_wasm, source, network, &[]),
+    )?;
+    let hooks_id = stellar::parse_deployed_id(&out.stdout)
+        .ok_or_else(|| "could not parse the deployed hooks contract id".to_string())?;
+    println!("deployed hooks: {hooks_id}");
+
+    // 2. Resolve the policy: an explicit id, a freshly deployed sample
+    //    policy, the config's recorded policy, or no policy gate.
+    let policy: Option<String> = if no_policy {
+        None
+    } else if let Some(id) = policy_id {
+        Some(id.to_string())
+    } else if let Some(wasm) = sample_policy_wasm {
+        let wasm = wasm.to_string_lossy().into_owned();
+        if !Path::new(&wasm).exists() {
+            return Err(format!(
+                "sample-policy wasm not found at {wasm} — build it with \
+                 `cargo build --target wasm32v1-none --release -p sample-policy`"
+            ));
+        }
+        let mut constructor = Vec::new();
+        if let Some(blocked) = policy_blocked {
+            constructor.push(("blocked", opt_address(Some(blocked))));
+        }
+        let out = send_raw(
+            runner,
+            &stellar::deploy_args(&wasm, source, network, &constructor),
+        )?;
+        let pid = stellar::parse_deployed_id(&out.stdout)
+            .ok_or_else(|| "could not parse the deployed policy contract id".to_string())?;
+        println!("deployed policy: {pid}");
+        Some(pid)
+    } else {
+        config.policy.as_ref().map(|p| p.contract_id.clone())
+    };
+
+    // 3. Run the one-way lifecycle on the fresh contract.
+    let invoke = |func: &str, params: &[(&str, String)]| -> Result<(), String> {
+        let args = stellar::invoke_args(Some(source), &hooks_id, network, func, params);
+        interpret(runner.run(&args)?).map(|_| ())
+    };
+    invoke(
+        "initialize",
+        &[("admin", address(&config.admin.public_key))],
+    )?;
+    println!("initialized with admin {}", config.admin.public_key);
+
+    let sac = sac_passthrough.unwrap_or(config.sac_passthrough);
+    invoke(
+        "set_config",
+        &[
+            ("policy", opt_address(policy.as_deref())),
+            ("sac_passthrough", boolean(sac)),
+        ],
+    )?;
+    match &policy {
+        Some(id) => println!("policy set to {id}; sac_passthrough={sac}"),
+        None => println!("policy gate disabled; sac_passthrough={sac}"),
+    }
+
+    for token in &config.tokens {
+        invoke(
+            "bind_token",
+            &[
+                ("token", address(&token.contract_id)),
+                ("sac", opt_address(token.sac_contract_id.as_deref())),
+            ],
+        )?;
+        println!("bound token {}", token.alias);
+    }
+
+    if let Some(path) = config_path {
+        let mut updated = config.clone();
+        updated.hooks_contract_id = hooks_id.clone();
+        updated.policy = policy.map(|id| config::Policy { contract_id: id });
+        updated.sac_passthrough = sac;
+        updated.save(&path.to_string_lossy())?;
+        println!("config updated: {}", path.display());
+    } else {
+        println!(
+            "config not modified — rerun with --save to record {hooks_id} as the hooks contract"
+        );
+    }
+    Ok(())
+}
+
 /// Registers the configured network in the stellar CLI config when missing.
 fn ensure_network<R: Runner>(runner: &R, config: &Config) -> Result<(), String> {
     let listed = runner.run(&stellar::network_list_args())?;
@@ -466,5 +654,133 @@ mod tests {
     fn decode_references_are_offline() {
         // The offline `errors` reference needs no config or ledger.
         assert!(print_errors(None).is_ok());
+    }
+
+    fn fake_id(letter: char) -> String {
+        format!("C{}", letter.to_string().repeat(55))
+    }
+
+    #[test]
+    fn deploy_runs_the_full_lifecycle_in_order() {
+        // Script the whole bring-up: deploy hooks, deploy a deny-list sample
+        // policy, then initialize → set_config → bind each token.
+        let hooks_id = fake_id('A');
+        let policy_id = fake_id('B');
+        let scripted = Scripted {
+            queue: RefCell::new(VecDeque::from([
+                ok_out(&format!("✅ Deployed!\n{hooks_id}\n")),
+                ok_out(&format!("✅ Deployed!\n{policy_id}\n")),
+                ok_out("null\n"), // initialize
+                ok_out("null\n"), // set_config
+                ok_out("null\n"), // bind_token (one configured token)
+            ])),
+            ..Default::default()
+        };
+
+        // The config's own policy is ignored: the wasm path deploys a fresh
+        // deny-list policy pinned to a blocked account.
+        let config = Config::load(&config_path()).unwrap();
+        let dir = std::env::temp_dir().join(format!("shwasm-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let hooks_wasm = dir.join("hooks.wasm");
+        let policy_wasm = dir.join("policy.wasm");
+        std::fs::write(&hooks_wasm, b"wasm").unwrap();
+        std::fs::write(&policy_wasm, b"wasm").unwrap();
+
+        run_deploy(
+            &scripted,
+            &config,
+            None,
+            "admin",
+            &hooks_wasm,
+            Some(&policy_wasm),
+            Some("GBQZ…BOB"),
+            None,
+            false,
+            None,
+        )
+        .unwrap();
+
+        let calls = scripted.calls.borrow();
+        assert_eq!(calls.len(), 5);
+
+        // [0] hooks deploy; [1] policy deploy with the JSON-quoted deny target.
+        assert!(calls[0]
+            .windows(2)
+            .any(|w| w == ["--wasm", &hooks_wasm.to_string_lossy()]));
+        assert!(calls[1]
+            .windows(2)
+            .any(|w| w == ["--wasm", &policy_wasm.to_string_lossy()]));
+        let dash = calls[1].iter().position(|a| a == "--").unwrap();
+        assert_eq!(calls[1][dash + 1..], ["--blocked", "\"GBQZ…BOB\""]);
+
+        // [2..4] the lifecycle targets the freshly deployed hooks id.
+        assert!(calls[2].contains(&hooks_id));
+        assert_eq!(
+            calls[2][calls[2].iter().position(|a| a == "--").unwrap() + 1],
+            "initialize"
+        );
+        assert_eq!(
+            calls[3][calls[3].iter().position(|a| a == "--").unwrap() + 1],
+            "set_config"
+        );
+        let set_cfg = &calls[3];
+        assert!(set_cfg
+            .windows(2)
+            .any(|w| w == ["--policy", &format!("\"{policy_id}\"")]));
+        assert!(set_cfg
+            .windows(2)
+            .any(|w| w == ["--sac_passthrough", "false"]));
+        assert_eq!(
+            calls[4][calls[4].iter().position(|a| a == "--").unwrap() + 1],
+            "bind_token"
+        );
+    }
+
+    #[test]
+    fn deploy_save_records_fresh_ids_into_the_config() {
+        let hooks_id = fake_id('C');
+        let scripted = Scripted {
+            queue: RefCell::new(VecDeque::from([
+                ok_out(&format!("✅ Deployed!\n{hooks_id}\n")),
+                ok_out("null\n"), // initialize
+                ok_out("null\n"), // set_config
+                ok_out("null\n"), // bind_token
+            ])),
+            ..Default::default()
+        };
+
+        let dir = std::env::temp_dir().join(format!("shsave-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let hooks_wasm = dir.join("hooks.wasm");
+        std::fs::write(&hooks_wasm, b"wasm").unwrap();
+        let target = dir.join("configuration.json");
+        std::fs::copy(config_path(), &target).unwrap();
+
+        // No policy wasm and no --policy-id: the config's recorded policy is
+        // reused, and its (stale) hooks id is overwritten by the deploy.
+        run_deploy(
+            &scripted,
+            &Config::load(&target.to_string_lossy()).unwrap(),
+            Some(&target),
+            "admin",
+            &hooks_wasm,
+            None,
+            None,
+            None,
+            false,
+            None,
+        )
+        .unwrap();
+
+        let saved = Config::load(&target.to_string_lossy()).unwrap();
+        assert_eq!(saved.hooks_contract_id, hooks_id);
+        assert_eq!(
+            saved.policy.as_ref().map(|p| p.contract_id.as_str()),
+            Some("CA…POLICY")
+        );
+        // The config round-tripped losslessly enough to load again.
+        assert_eq!(saved.tokens.len(), 1);
+        assert_eq!(saved.tokens[0].alias, "usd");
     }
 }

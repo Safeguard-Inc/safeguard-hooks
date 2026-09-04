@@ -6,10 +6,13 @@
 //! enforcement scope. The file never holds secrets — the admin secret stays
 //! in the stellar CLI identity store or an environment variable.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// The `deployments/<env>/configuration.json` shape.
-#[derive(Debug, Clone, Deserialize)]
+///
+/// Round-trippable: `safeguard-hooks deploy --save` writes freshly minted
+/// contract ids back through this struct, so a deployment stays recorded.
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
     /// Stellar network name (must be registered in the stellar CLI config,
     /// e.g. `local`, `testnet`). The CLI registers it when `rpc_url` and
@@ -22,7 +25,7 @@ pub struct Config {
     /// The deployed `compliance-hooks` contract id (`C…`).
     pub hooks_contract_id: String,
     /// The policy the deployment points the hooks contract at.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub policy: Option<Policy>,
     /// Informational mirror of the on-chain SAC-passthrough flag.
     #[serde(default)]
@@ -30,44 +33,52 @@ pub struct Config {
     /// The admin authority of the hooks contract.
     pub admin: Admin,
     /// Tokens in enforcement scope, keyed by alias.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tokens: Vec<Token>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Policy {
     pub contract_id: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Admin {
     /// Public key the hooks contract was initialized with.
     pub public_key: String,
     /// stellar CLI identity name that signs admin operations.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stellar_identity: Option<String>,
     /// Env var holding the admin secret key (alternative to an identity).
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_key_env: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Token {
     /// Local name for `--token` arguments.
     pub alias: String,
     /// The bound token's address (`C…` for a contract, `G…` for an account).
     pub contract_id: String,
     /// The token's underlying SAC contract id, if it wraps one.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sac_contract_id: Option<String>,
 }
-
 impl Config {
     /// Loads and parses the configuration file.
     pub fn load(path: &str) -> Result<Config, String> {
         let raw =
             std::fs::read_to_string(path).map_err(|e| format!("cannot read config {path}: {e}"))?;
         serde_json::from_str(&raw).map_err(|e| format!("invalid config {path}: {e}"))
+    }
+
+    /// Persists the configuration back to `path` (used by `deploy --save`
+    /// to record freshly deployed contract ids).
+    pub fn save(&self, path: &str) -> Result<(), String> {
+        let raw = serde_json::to_string_pretty(self)
+            .map_err(|e| format!("cannot serialize config: {e}"))?;
+        std::fs::write(path, format!("{raw}\n"))
+            .map_err(|e| format!("cannot write config {path}: {e}"))
     }
 
     /// Resolves a `--token` argument (an alias or a bare `C…`/`G…` address)
