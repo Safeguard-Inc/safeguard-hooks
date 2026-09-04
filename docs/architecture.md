@@ -40,7 +40,41 @@ crates/
   compliance                 the gate-ordering evaluation pipeline (freeze →
                              policy → SAC) and the SAC authorized() view
   events                     typed #[contractevent] structs (audit bridge)
+contracts/sample-policy      demo implementation of the policy wire contract
+cli/                         operator CLI (thin; shells to the stellar CLI)
+schemas/                     JSON Schemas for every wire surface
+fixtures/ + examples/        schema-validated reference data and scenarios
+interfaces/                  canonical hook/policy/event protocol references
 ```
+
+### Where the planned module tree lives
+
+The original structure sketch split the contract into per-concern module
+directories (`hooks/`, `authorization/`, `policy/`, `compliance/`,
+`state/`, `events/`, `errors/`, `types/`) and the CLI into
+`commands/`. This repository keeps the same separation in a form that is
+actually shareable and testable: each concern is a `crates/` library the
+contract binary composes (and the suites test directly), and the CLI's
+command surface is `cli/src/`. The contract and CLI stay thin. The
+equivalent mapping:
+
+| Planned module | Lives in |
+| -------------- | -------- |
+| hooks/register..withdraw, freeze | `crates/compliance` + contract `before_*` entry points |
+| authorization/ (account, spender, admin, token) | `crates/authorization` + `crates/hook-core` party roles |
+| policy/ (client, decision, request, response, errors) | `crates/policy-client` + `interfaces/policy` + `schemas/policy-*.schema.json` |
+| compliance/ (evaluator, restrictions, jurisdiction, sanctions) | `crates/compliance` evaluator; rule evaluation stays policy-side |
+| state/ (storage, bindings, frozen, versions) | `crates/storage` |
+| events/ (topics, payloads) | `crates/events` + `interfaces/events` |
+| errors/ | `crates/hook-core` reasons + contract error codes |
+| types/ | `crates/hook-core` (operations, parties, decisions, config) |
+| policy-adapter contract | `crates/policy-client` + `contracts/sample-policy` |
+| cli commands/ | `cli/src/main.rs` command surface |
+
+Reference data and protocol documentation that the sketch kept out of the
+crates — `interfaces/`, `schemas/`, `fixtures/`, `examples/` — are real
+directories here; `schemas/` is validated in CI by
+`scripts/check-schema.sh` (`docs/testing.md`).
 
 ## Where each decision lives
 

@@ -72,29 +72,41 @@ production financial infrastructure.
 
 ```text
 contracts/
-  compliance-hooks/    Soroban enforcement contract — all six hooks + freeze ops — ✅ phases 1–2
-  tests/ (in-package)   security, invariant, and deterministic property suites — ✅ phase 3 hardening
-  sample-policy/       Minimal demo implementation of the safeguard-policy wire contract (is_authorized) — ✅
-cli/                   Operator CLI: inspect/configure the enforcement layer — ✅ phase 3
+  compliance-hooks/    Soroban enforcement contract — all six hooks + freeze ops
+  compliance-hooks/tests/  security, invariant, and property suites
+  sample-policy/       Demo implementation of the safeguard-policy wire contract
+cli/                   Operator CLI (init/configure/bind/unbind/freeze/unfreeze/show/errors/deploy)
 scripts/
-  integration-local.sh Live-ledger integration against the containerized local network — ✅
-deployments/           Per-environment contract-id/configuration reference — ✅
+  integration-local.sh Live-ledger integration against the containerized local network
+  check-schema.sh      Validates schemas + fixtures/examples/deployments
 crates/
-  hook-core/           Environment-free domain model (operations, parties, decisions) — ✅
-  policy-client/       Typed fail-closed bridge to the safeguard-policy contract — ✅
-  authorization/       Admin + token enforcement-scope authority gates — ✅
-  compliance/          Gate-ordering pipeline: freeze → policy → SAC — ✅
-  storage/             Contract state keys and persistence helpers — ✅
-  events/              Structured contract events (audit bridge) — ✅
-interfaces/            Trait/interface definitions shared across the Safeguard repos
-schemas/               JSON schemas for configs, requests, decisions
-fixtures/              Sample policies, accounts, tokens, operations
-tests/                 Unit, hook, policy, freezing, sac, security, invariant tests
-docs/                  Architecture and operational documentation — ✅ core set
-audit/ cli/ …          Follow-on batches (Phase 2–4)
+  hook-core/           Environment-free domain model (operations, parties, decisions, reasons)
+  policy-client/       Typed fail-closed bridge to the safeguard-policy contract
+  authorization/       Admin + token enforcement-scope authority gates
+  compliance/          Gate-ordering pipeline: freeze → policy → SAC (short-circuiting)
+  storage/             Contract state keys (config, bindings, freeze, admin, versions)
+  events/              State-transition contract events (audit bridge)
+schemas/               Eight JSON Schemas for the wire surfaces (checked in CI)
+fixtures/              Schema-validated policies, accounts, tokens, operation requests
+interfaces/            Canonical protocol references: hooks, policy wire, events
+examples/              Nine ready-to-adapt deployment configurations
+deployments/           Per-environment configuration templates (local + testnet)
+docs/                  Architecture, model, ops, and testing documentation
+tests/ …               Coverage lives in the crate unit tests and the contract suites (docs/testing.md)
 ```
 
-## Status: Phases 1–4 complete
+**Layout notes.** The module tree of `contracts/compliance-hooks` (hooks,
+authorization, policy client, compliance engine, storage, events, types)
+and the CLI's command modules live as the `crates/` library crates and
+`cli/src/` files — the contract and CLI binaries stay thin entry points over
+that shared logic (`docs/architecture.md` maps each spec module to its
+home). The role of a separate `policy-adapter` contract is filled by
+`crates/policy-client` plus the `sample-policy` demo; the enforcement
+deployment keeps one `configuration.json` per environment rather than
+splitting ids across `contracts.json`/`policy.json`
+(`deployments/README.md`).
+
+## Status: Phases 1–4 complete, spec surface closed
 
 Phase 1 (the foundation), Phase 2, the Phase 3 hardening suites, and
 Phase 4 are implemented, tested, and pushed: the six supporting crates and the
@@ -172,14 +184,18 @@ scripts/integration-local.sh
 
 * `docs/architecture.md` — DEFINE → ENFORCE → VERIFY and this repo's shape
 * `docs/enforcement-model.md` — when an operation is allowed or reverted
+* `docs/hook-lifecycle.md` / `docs/compliance-engine.md` — the evaluation path and pipeline
+* `docs/freezing.md` / `docs/sac-passthrough.md` / `docs/delegated-transfers.md` / `docs/multi-token.md` — the enforcement features
+* `docs/policy-integration.md` — the `is_authorized` seam with `safeguard-policy`
 * `docs/authorization.md` — the caller model and authority boundaries
 * `docs/errors.md` — rejection reason codes and their mapping
+* `docs/events.md` — the state-transition audit bridge
 * `docs/privacy.md` — what the enforcement layer can and cannot observe
 * `docs/storage.md` — the small, auditable state surface
-* `docs/security.md` / `docs/threat-model.md` — posture and threat controls
-* `docs/deployment.md` / `docs/testnet.md` — deploy and operate the contract on a real ledger
-* `docs/cli.md` — the `safeguard-hooks` operator CLI
+* `docs/security.md` / `docs/threat-model.md` / `SECURITY.md` — posture and threat controls
 * `docs/performance.md` — enforcement cost model, short-circuit guarantees, and the policy-integration boundary
+* `docs/deployment.md` / `docs/testnet.md` / `docs/cli.md` / `docs/integration.md` — deploy and operate on a real ledger
+* `docs/testing.md` / `CONTRIBUTING.md` — test matrix and contribution guide
 
 ## License
 
