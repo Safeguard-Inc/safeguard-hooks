@@ -145,6 +145,27 @@ pub fn evaluate_withdraw(e: &Env, token: &Address, account: &Address) -> Complia
     evaluate(e, token, Operation::Withdraw, &parties)
 }
 
+/// Evaluates a merge on `token` for the merging `account`.
+pub fn evaluate_merge(e: &Env, token: &Address, account: &Address) -> ComplianceDecision {
+    evaluate(e, token, Operation::Merge, core::slice::from_ref(&account))
+}
+
+/// Evaluates a delegated (spender-authorized) transfer on `token`.
+///
+/// The `spender` holds no funds, so it is screened by the policy gate only;
+/// `from` and `to` pass the full gate. See [`Operation::TransferFrom`] and
+/// the crate docs on party roles.
+pub fn evaluate_transfer_from(
+    e: &Env,
+    token: &Address,
+    spender: &Address,
+    from: &Address,
+    to: &Address,
+) -> ComplianceDecision {
+    let parties = [spender, from, to];
+    evaluate(e, token, Operation::TransferFrom, &parties)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -539,6 +560,120 @@ mod tests {
         assert_eq!(
             denied,
             ComplianceDecision::Deny(RejectionReason::PolicyDenied)
+        );
+    }
+
+    #[test]
+    fn delegated_transfer_allows_compliant_parties() {
+        let f = fixture();
+        let spender = Address::generate(&f.env);
+        let policy = register_policy(&f, None);
+        set_policy(&f, Some(&policy), false);
+
+        let decision = f.env.as_contract(&f.host, || {
+            evaluate_transfer_from(&f.env, &f.token, &spender, &f.alice, &f.bob)
+        });
+        assert_eq!(decision, ComplianceDecision::Allow);
+    }
+
+    #[test]
+    fn delegated_transfer_rejects_a_blocked_spender() {
+        let f = fixture();
+        let spender = Address::generate(&f.env);
+        let policy = register_policy(&f, Some(&spender));
+        set_policy(&f, Some(&policy), false);
+
+        // The spender holds no funds but is still screened by policy: a
+        // delegation to a non-compliant spender fails.
+        let decision = f.env.as_contract(&f.host, || {
+            evaluate_transfer_from(&f.env, &f.token, &spender, &f.alice, &f.bob)
+        });
+        assert_eq!(
+            decision,
+            ComplianceDecision::Deny(RejectionReason::PolicyDenied)
+        );
+    }
+
+    #[test]
+    fn delegated_transfer_gates_from_and_to_fully() {
+        let f = fixture();
+        let spender = Address::generate(&f.env);
+        let policy = register_policy(&f, Some(&f.bob));
+        set_policy(&f, Some(&policy), false);
+
+        // Bob is the recipient: blocked by policy even though the spender
+        // and the sender would pass.
+        let decision = f.env.as_contract(&f.host, || {
+            evaluate_transfer_from(&f.env, &f.token, &spender, &f.alice, &f.bob)
+        });
+        assert_eq!(
+            decision,
+            ComplianceDecision::Deny(RejectionReason::PolicyDenied)
+        );
+    }
+
+    #[test]
+    fn delegated_spender_is_exempt_from_freeze_and_sac() {
+        let f = fixture();
+        let spender = Address::generate(&f.env);
+        let policy = register_policy(&f, None);
+        set_policy(&f, Some(&policy), true); // SAC passthrough on.
+
+        // Freeze the spender and make it SAC-unauthorized: neither gate
+        // applies to the spender, because the spender holds no funds — the
+        // value stays with `from`.
+        f.env.as_contract(&f.host, || {
+            safeguard_storage::freeze_account(&f.env, &f.token, &spender);
+        });
+        let decision = f.env.as_contract(&f.host, || {
+            evaluate_transfer_from(&f.env, &f.token, &spender, &f.alice, &f.bob)
+        });
+        assert_eq!(decision, ComplianceDecision::Allow);
+
+        // A frozen `from`, by contrast, stops the delegated flow: freezing
+        // the owner halts the delegation.
+        f.env.as_contract(&f.host, || {
+            safeguard_storage::freeze_account(&f.env, &f.token, &f.alice);
+        });
+        let decision = f.env.as_contract(&f.host, || {
+            evaluate_transfer_from(&f.env, &f.token, &spender, &f.alice, &f.bob)
+        });
+        assert_eq!(
+            decision,
+            ComplianceDecision::Deny(RejectionReason::AccountFrozen)
+        );
+    }
+
+    #[test]
+    fn merge_gates_the_merging_account() {
+        let f = fixture();
+        let policy = register_policy(&f, Some(&f.bob));
+        set_policy(&f, Some(&policy), false);
+
+        let ok = f
+            .env
+            .as_contract(&f.host, || evaluate_merge(&f.env, &f.token, &f.alice));
+        assert_eq!(ok, ComplianceDecision::Allow);
+
+        // A blocked account cannot merge its pending commitment.
+        let denied = f
+            .env
+            .as_contract(&f.host, || evaluate_merge(&f.env, &f.token, &f.bob));
+        assert_eq!(
+            denied,
+            ComplianceDecision::Deny(RejectionReason::PolicyDenied)
+        );
+
+        // A frozen account cannot merge either.
+        f.env.as_contract(&f.host, || {
+            safeguard_storage::freeze_account(&f.env, &f.token, &f.alice);
+        });
+        let denied = f
+            .env
+            .as_contract(&f.host, || evaluate_merge(&f.env, &f.token, &f.alice));
+        assert_eq!(
+            denied,
+            ComplianceDecision::Deny(RejectionReason::AccountFrozen)
         );
     }
 

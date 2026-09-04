@@ -64,5 +64,6 @@ pub mod evaluator;
 pub mod sac;
 
 pub use evaluator::{
-    evaluate, evaluate_deposit, evaluate_register, evaluate_transfer, evaluate_withdraw,
+    evaluate, evaluate_deposit, evaluate_merge, evaluate_register, evaluate_transfer,
+    evaluate_transfer_from, evaluate_withdraw,
 };
