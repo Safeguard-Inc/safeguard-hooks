@@ -18,7 +18,9 @@
 //!                                   token cannot silently run ungated.
 //! 3. bind_token(token, sac)       — admin: admits a token into scope.
 //!                                   Unbound tokens are rejected outright.
-//! 4. token invokes before_*        — enforcement runs per operation.
+//! 4. freeze / unfreeze            — admin: per-(token, account) freeze state,
+//!                                   emitted as events for the audit bridge.
+//! 5. token invokes before_*        — enforcement runs per operation.
 //! ```
 //!
 //! Enforcement *cannot* be turned off once configured: the config fields may
@@ -56,12 +58,16 @@ use soroban_sdk::{contract, contracterror, contractimpl, Address, Env};
 
 use safeguard_authorization::{is_initialized, require_admin};
 use safeguard_compliance::{
-    evaluate_deposit, evaluate_register, evaluate_transfer, evaluate_withdraw,
+    evaluate_deposit, evaluate_merge, evaluate_register, evaluate_transfer, evaluate_transfer_from,
+    evaluate_withdraw,
 };
+use safeguard_events::{emit_account_frozen, emit_account_unfrozen};
 use safeguard_hook_core::{ComplianceDecision, RejectionReason};
 use safeguard_storage::{
-    bind_token as storage_bind, compliance_config as storage_config, is_token_bound, set_admin,
-    set_compliance_config, unbind_token as storage_unbind, ComplianceConfig,
+    bind_token as storage_bind, compliance_config as storage_config,
+    freeze_account as storage_freeze, is_frozen as storage_is_frozen, is_token_bound, set_admin,
+    set_compliance_config, unbind_token as storage_unbind, unfreeze_account as storage_unfreeze,
+    ComplianceConfig,
 };
 
 /// Contract errors surfaced by reverts. Codes mirror
@@ -166,6 +172,36 @@ impl ComplianceHooks {
         Ok(())
     }
 
+    // ################## FREEZE ADMINISTRATION ##################
+
+    /// Freezes `account` on `token` (admin-gated): the account can neither
+    /// send, receive, deposit, nor withdraw on that token. Requires an active
+    /// enforcement configuration and a bound token. Emits `AccountFrozen`
+    /// only when the freeze is an actual state change — freezing an already
+    /// frozen account is an idempotent no-op that emits nothing.
+    pub fn freeze(e: Env, token: Address, account: Address) -> Result<(), ContractError> {
+        admin_gate(&e)?;
+        scope_gate(&e, &token)?;
+        if !storage_is_frozen(&e, &token, &account) {
+            storage_freeze(&e, &token, &account);
+            emit_account_frozen(&e, &token, &account);
+        }
+        Ok(())
+    }
+
+    /// Unfreezes `account` on `token` (admin-gated). Emits `AccountUnfrozen`
+    /// only when the unfreeze is an actual state change — unfreezing an
+    /// unfrozen account is an idempotent no-op that emits nothing.
+    pub fn unfreeze(e: Env, token: Address, account: Address) -> Result<(), ContractError> {
+        admin_gate(&e)?;
+        scope_gate(&e, &token)?;
+        if storage_is_frozen(&e, &token, &account) {
+            storage_unfreeze(&e, &token, &account);
+            emit_account_unfrozen(&e, &token, &account);
+        }
+        Ok(())
+    }
+
     // ################## HOOK ENTRY POINTS (invoked by the token) ##################
 
     /// Gates an account registration on `token`.
@@ -198,6 +234,23 @@ impl ComplianceHooks {
         enforce(evaluate_withdraw(&e, &token, &account))
     }
 
+    /// Gates a merge on `token` for the merging `account`.
+    pub fn before_merge(e: Env, token: Address, account: Address) -> Result<(), ContractError> {
+        enforce(evaluate_merge(&e, &token, &account))
+    }
+
+    /// Gates a delegated transfer on `token`. The `spender` is screened by
+    /// policy only; `from` and `to` pass the full gate.
+    pub fn before_transfer_from(
+        e: Env,
+        token: Address,
+        spender: Address,
+        from: Address,
+        to: Address,
+    ) -> Result<(), ContractError> {
+        enforce(evaluate_transfer_from(&e, &token, &spender, &from, &to))
+    }
+
     // ################## PUBLIC READS ##################
 
     /// Whether `token` is bound to this contract.
@@ -214,6 +267,11 @@ impl ComplianceHooks {
     pub fn config(e: Env) -> Option<ComplianceConfig> {
         storage_config(&e)
     }
+
+    /// Whether `account` is frozen on `token`.
+    pub fn is_frozen(e: Env, token: Address, account: Address) -> bool {
+        storage_is_frozen(&e, &token, &account)
+    }
 }
 
 /// Runs the admin authority gate, mapping an uninitialized contract onto the
@@ -221,6 +279,18 @@ impl ComplianceHooks {
 /// sign reverts inside `require_admin` (host authorization error).
 fn admin_gate(e: &Env) -> Result<(), ContractError> {
     require_admin(e).map_err(ContractError::from)
+}
+
+/// Ensures per-token administration (freeze) only targets an active
+/// enforcement scope: the contract must be configured and the token bound.
+fn scope_gate(e: &Env, token: &Address) -> Result<(), ContractError> {
+    if storage_config(e).is_none() {
+        return Err(ContractError::InvalidConfiguration);
+    }
+    if !is_token_bound(e, token) {
+        return Err(ContractError::UnboundToken);
+    }
+    Ok(())
 }
 
 /// Turns a denial into an `Err` the invoking token must treat as a failed
@@ -236,8 +306,10 @@ fn enforce(decision: ComplianceDecision) -> Result<(), ContractError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::testutils::{Address as _, EnvTestConfig};
-    use soroban_sdk::{contract, contractimpl, symbol_short, IntoVal, Symbol};
+    use soroban_sdk::testutils::{Address as _, EnvTestConfig, Events as _};
+    use soroban_sdk::{contract, contractimpl, symbol_short, Event as _, IntoVal, Symbol};
+
+    use safeguard_events::{AccountFrozen, AccountUnfrozen};
 
     /// Deny-list policy pinned to one token (see the compliance crate tests).
     #[contract]
@@ -475,16 +547,116 @@ mod tests {
     fn frozen_party_reverts_with_account_frozen() {
         let f = fixture();
 
-        // Freeze Alice through the underlying storage (the freeze admin op
-        // arrives with the batch that adds freeze events).
-        f.env.as_contract(&f.hooks, || {
-            safeguard_storage::freeze_account(&f.env, &f.token, &f.alice);
-        });
+        // Freeze Alice through the real admin-gated entry point.
+        let client = ComplianceHooksClient::new(&f.env, &f.hooks);
+        client.mock_all_auths().freeze(&f.token, &f.alice);
+        assert!(client.is_frozen(&f.token, &f.alice));
 
         assert_eq!(
             try_before_deposit(&f.env, &f.hooks, &f.token, &f.alice, &f.bob),
             Err(ContractError::AccountFrozen)
         );
+    }
+
+    #[test]
+    fn freeze_is_an_admin_gated_state_change_with_one_event() {
+        let f = fixture();
+        let client = ComplianceHooksClient::new(&f.env, &f.hooks);
+
+        assert!(!client.is_frozen(&f.token, &f.alice));
+        client.mock_all_auths().freeze(&f.token, &f.alice);
+
+        // The state change is recorded as exactly one event naming the
+        // token and the account — nothing else.
+        assert_eq!(
+            f.env.events().all(),
+            [AccountFrozen {
+                token: f.token.clone(),
+                account: f.alice.clone()
+            }
+            .to_xdr(&f.env, &f.hooks)]
+        );
+        assert!(client.is_frozen(&f.token, &f.alice));
+
+        // Freezing an already-frozen account is an idempotent no-op that
+        // emits no second event (events describe state transitions).
+        client.mock_all_auths().freeze(&f.token, &f.alice);
+        assert_eq!(f.env.events().all(), []);
+    }
+
+    #[test]
+    fn unfreeze_restores_access_and_emits_one_event() {
+        let f = fixture();
+        let client = ComplianceHooksClient::new(&f.env, &f.hooks);
+
+        client.mock_all_auths().freeze(&f.token, &f.alice);
+        assert_eq!(
+            try_before_deposit(&f.env, &f.hooks, &f.token, &f.alice, &f.bob),
+            Err(ContractError::AccountFrozen)
+        );
+
+        client.mock_all_auths().unfreeze(&f.token, &f.alice);
+        assert_eq!(
+            f.env.events().all(),
+            [AccountUnfrozen {
+                token: f.token.clone(),
+                account: f.alice.clone()
+            }
+            .to_xdr(&f.env, &f.hooks)]
+        );
+        assert!(!client.is_frozen(&f.token, &f.alice));
+
+        // The unfrozen account can operate again.
+        assert_eq!(
+            try_before_deposit(&f.env, &f.hooks, &f.token, &f.alice, &f.bob),
+            Ok(())
+        );
+
+        // Unfreezing an unfrozen account emits nothing.
+        client.mock_all_auths().unfreeze(&f.token, &f.alice);
+        assert_eq!(f.env.events().all(), []);
+    }
+
+    #[test]
+    fn freeze_requires_a_bound_token() {
+        let f = fixture();
+        let client = ComplianceHooksClient::new(&f.env, &f.hooks);
+        let stranger = Address::generate(&f.env);
+
+        let res = client.mock_all_auths().try_freeze(&stranger, &f.alice);
+        assert!(matches!(res, Err(Ok(ContractError::UnboundToken))));
+        assert!(!client.is_frozen(&stranger, &f.alice));
+    }
+
+    #[test]
+    fn freeze_requires_an_active_configuration() {
+        let env = Env::new_with_config(EnvTestConfig {
+            capture_snapshot_at_drop: false,
+        });
+        let hooks = env.register(ComplianceHooks, ());
+        let token = Address::generate(&env);
+        let alice = Address::generate(&env);
+
+        let client = ComplianceHooksClient::new(&env, &hooks);
+        client.initialize(&Address::generate(&env));
+        // Bind the token but never configure enforcement.
+        client.mock_all_auths().bind_token(&token, &None);
+
+        let res = client.mock_all_auths().try_freeze(&token, &alice);
+        assert!(matches!(res, Err(Ok(ContractError::InvalidConfiguration))));
+    }
+
+    #[test]
+    fn unauthorized_freeze_reverts() {
+        let f = fixture();
+
+        // No auth mocked: the stored admin did not authorize the freeze.
+        let res = f.env.try_invoke_contract::<(), ContractError>(
+            &f.hooks,
+            &Symbol::new(&f.env, "freeze"),
+            (f.token.clone(), f.alice.clone()).into_val(&f.env),
+        );
+        assert!(res.is_err());
     }
 
     #[test]

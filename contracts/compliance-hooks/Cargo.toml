@@ -19,6 +19,7 @@ safeguard-hook-core = { path = "../../crates/hook-core" }
 safeguard-storage = { path = "../../crates/storage" }
 safeguard-authorization = { path = "../../crates/authorization" }
 safeguard-compliance = { path = "../../crates/compliance" }
+safeguard-events = { path = "../../crates/events" }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

@@ -306,6 +306,7 @@ version = "0.1.0"
 dependencies = [
  "safeguard-authorization",
  "safeguard-compliance",
+ "safeguard-events",
  "safeguard-hook-core",
  "safeguard-storage",
  "soroban-sdk",
