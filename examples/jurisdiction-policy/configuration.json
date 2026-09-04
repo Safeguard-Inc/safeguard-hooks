@@ -1,0 +1,19 @@
+{
+  "network": "testnet",
+  "rpc_url": "https://soroban-testnet.stellar.org",
+  "network_passphrase": "Test SDF Network ; September 2015",
+  "hooks_contract_id": "CA42K3YO7EDNT4PRRK7GBOACOLGJHSQBDGT57KH2W3JTGQSNDAB7USQL",
+  "policy": { "contract_id": "CAAAAAPOLICYJURISDICTIONAAAAAAAAAAAAAAAAA" },
+  "sac_passthrough": false,
+  "admin": {
+    "public_key": "GBQZUZ2MKEJJXOMHVQMLTWPRDJIBPP6GB73JOZC2TSY5RT6CXX2YRDZS",
+    "secret_key_env": "SAFEGUARD_ADMIN_SK"
+  },
+  "tokens": [
+    {
+      "alias": "usd",
+      "contract_id": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA"
+    }
+  ],
+  "description": "Jurisdiction-restricted policy (fixtures/policies/jurisdiction.json). Jurisdiction data is policy-side; denials surface as RejectionReason::JurisdictionRestricted."
+}

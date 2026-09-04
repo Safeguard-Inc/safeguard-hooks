@@ -1,0 +1,25 @@
+{
+  "network": "local",
+  "rpc_url": "http://localhost:8000/rpc",
+  "network_passphrase": "Standalone Network ; February 2017",
+  "hooks_contract_id": "CA42K3YO7EDNT4PRRK7GBOACOLGJHSQBDGT57KH2W3JTGQSNDAB7USQL",
+  "policy": { "contract_id": "CAAAAAPOLICYDENYLISTAAAAAAAAAAAAAAAAAAAAA" },
+  "sac_passthrough": false,
+  "admin": {
+    "public_key": "GBQZUZ2MKEJJXOMHVQMLTWPRDJIBPP6GB73JOZC2TSY5RT6CXX2YRDZS",
+    "stellar_identity": "admin"
+  },
+  "tokens": [
+    {
+      "alias": "usd",
+      "contract_id": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA",
+      "sac_contract_id": "CAAAAAUSDSACUNDERLYINGAAAAAAAAAAAAAAAAAA"
+    },
+    {
+      "alias": "eur",
+      "contract_id": "CAAAAAEURCOINFIDENTIALAAAAAAAAAAAAAAAAAA",
+      "sac_contract_id": "CAAAAAEURSACUNDERLYINGAAAAAAAAAAAAAAAAAA"
+    }
+  ],
+  "description": "One denylist policy serving two bound tokens. The policy receives the token on every is_authorized call, so a single registry can apply per-token rules; freeze and binding state stay isolated per token (docs/multi-token.md)."
+}

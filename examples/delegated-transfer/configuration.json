@@ -1,0 +1,20 @@
+{
+  "network": "local",
+  "rpc_url": "http://localhost:8000/rpc",
+  "network_passphrase": "Standalone Network ; February 2017",
+  "hooks_contract_id": "CA42K3YO7EDNT4PRRK7GBOACOLGJHSQBDGT57KH2W3JTGQSNDAB7USQL",
+  "policy": { "contract_id": "CAAAAAPOLICYDENYLISTAAAAAAAAAAAAAAAAAAAAA" },
+  "sac_passthrough": false,
+  "admin": {
+    "public_key": "GBQZUZ2MKEJJXOMHVQMLTWPRDJIBPP6GB73JOZC2TSY5RT6CXX2YRDZS",
+    "stellar_identity": "admin"
+  },
+  "tokens": [
+    {
+      "alias": "usd",
+      "contract_id": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA",
+      "sac_contract_id": "CAAAAAUSDSACUNDERLYINGAAAAAAAAAAAAAAAAAA"
+    }
+  ],
+  "description": "Delegated transfers: the spender of a transfer_from is screened by policy only (it holds no funds); from and to pass the full freeze/policy/SAC gate (docs/delegated-transfers.md)."
+}

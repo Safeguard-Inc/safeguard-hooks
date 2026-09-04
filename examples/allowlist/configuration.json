@@ -1,0 +1,20 @@
+{
+  "network": "local",
+  "rpc_url": "http://localhost:8000/rpc",
+  "network_passphrase": "Standalone Network ; February 2017",
+  "hooks_contract_id": "CA42K3YO7EDNT4PRRK7GBOACOLGJHSQBDGT57KH2W3JTGQSNDAB7USQL",
+  "policy": { "contract_id": "CAAAAAPOLICYALLOWLISTAAAAAAAAAAAAAAAAAAA" },
+  "sac_passthrough": false,
+  "admin": {
+    "public_key": "GBQZUZ2MKEJJXOMHVQMLTWPRDJIBPP6GB73JOZC2TSY5RT6CXX2YRDZS",
+    "stellar_identity": "admin"
+  },
+  "tokens": [
+    {
+      "alias": "usd",
+      "contract_id": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA",
+      "sac_contract_id": "CAAAAAUSDSACUNDERLYINGAAAAAAAAAAAAAAAAAA"
+    }
+  ],
+  "description": "Allowlist policy (fixtures/policies/allowlist.json): only listed accounts are authorized; everyone else reverts with policy_denied."
+}

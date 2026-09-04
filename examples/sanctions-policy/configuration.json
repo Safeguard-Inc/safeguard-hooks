@@ -1,0 +1,19 @@
+{
+  "network": "testnet",
+  "rpc_url": "https://soroban-testnet.stellar.org",
+  "network_passphrase": "Test SDF Network ; September 2015",
+  "hooks_contract_id": "CA42K3YO7EDNT4PRRK7GBOACOLGJHSQBDGT57KH2W3JTGQSNDAB7USQL",
+  "policy": { "contract_id": "CAAAAAPOLICYSANCTIONSAAAAAAAAAAAAAAAAAAA" },
+  "sac_passthrough": false,
+  "admin": {
+    "public_key": "GBQZUZ2MKEJJXOMHVQMLTWPRDJIBPP6GB73JOZC2TSY5RT6CXX2YRDZS",
+    "secret_key_env": "SAFEGUARD_ADMIN_SK"
+  },
+  "tokens": [
+    {
+      "alias": "usd",
+      "contract_id": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA"
+    }
+  ],
+  "description": "Sanctions-screened policy (fixtures/policies/sanctions.json). Rule evaluation is the policy's; denials arrive as policy_denied and the contract surfaces RejectionReason::SanctionsBlocked when the policy reports it."
+}
