@@ -4,7 +4,10 @@
 //! into a single decision. The gate order is deliberate and documented in
 //! the crate docs: configuration and token-scope checks first (cheap,
 //! structural), then per party — freeze (local storage) before policy
-//! (cross-contract) before SAC (cross-contract).
+//! (cross-contract) before SAC (cross-contract). The pipeline also
+//! short-circuits: once any gate denies, the operation is dead and no later
+//! party is screened, so a denial never pays a subsequent party's
+//! cross-contract call.
 //!
 //! The pipeline never decides *eligibility* itself. Policy answers come from
 //! the external `safeguard-policy` contract through
@@ -54,7 +57,13 @@ pub fn evaluate(
 
     let mut decision = ComplianceDecision::Allow;
     for (role, account) in roles.iter().copied().zip(parties.iter().copied()) {
-        decision = decision.and_then(screen_party(e, token, role, account, &config, sac.as_ref()));
+        // Short-circuit: once any party denies, the operation is dead and no
+        // further party is screened. Denials therefore never pay a later
+        // party's cross-contract policy or SAC call.
+        if !decision.is_allowed() {
+            break;
+        }
+        decision = screen_party(e, token, role, account, &config, sac.as_ref());
     }
     decision
 }
@@ -204,6 +213,40 @@ mod tests {
         pub fn is_authorized(_e: Env, _account: Address, _token: Address) -> bool {
             panic!("policy unavailable")
         }
+    }
+
+    /// A counting policy: authorizes every account on the pinned token and
+    /// records how many times it was actually consulted. Tests use the call
+    /// count to prove denials short-circuit *before* the cross-contract
+    /// policy call (denied paths must not pay the cross-contract price).
+    #[contract]
+    struct CountingPolicy;
+
+    #[contractimpl]
+    impl CountingPolicy {
+        pub fn __constructor(e: Env, token: Address) {
+            e.storage().instance().set(&symbol_short!("tokn"), &token);
+            e.storage().instance().set(&symbol_short!("calls"), &0u32);
+        }
+
+        pub fn is_authorized(e: Env, _account: Address, token: Address) -> bool {
+            let bound: Address = e.storage().instance().get(&symbol_short!("tokn")).unwrap();
+            if token != bound {
+                return false;
+            }
+            let calls: u32 = e.storage().instance().get(&symbol_short!("calls")).unwrap();
+            e.storage()
+                .instance()
+                .set(&symbol_short!("calls"), &(calls + 1));
+            true
+        }
+    }
+
+    /// Returns how many times `policy` was consulted (reads its counter).
+    fn policy_call_count(e: &Env, policy: &Address) -> u32 {
+        e.as_contract(policy, || {
+            e.storage().instance().get(&symbol_short!("calls")).unwrap()
+        })
     }
 
     /// Minimal SAC: authorizes exactly the accounts given at construction.
@@ -703,5 +746,74 @@ mod tests {
             on_b,
             ComplianceDecision::Deny(RejectionReason::PolicyDenied)
         );
+    }
+
+    #[test]
+    fn denials_short_circuit_before_the_policy_call() {
+        let f = fixture();
+        let policy = f.env.register(CountingPolicy, (&f.token,));
+        set_policy(&f, Some(&policy), false);
+
+        // An unconfigured-token-style structural denial never reaches the
+        // policy. (The binding gate precedes it: evaluate a stranger token.)
+        let stranger = Address::generate(&f.env);
+        let decision = f.env.as_contract(&f.host, || {
+            evaluate_deposit(&f.env, &stranger, &f.alice, &f.bob)
+        });
+        assert_eq!(
+            decision,
+            ComplianceDecision::Deny(RejectionReason::UnboundToken)
+        );
+        assert_eq!(policy_call_count(&f.env, &policy), 0);
+
+        // A frozen party is denied at the local freeze gate — the policy is
+        // not consulted (denials must not pay the cross-contract price).
+        f.env.as_contract(&f.host, || {
+            safeguard_storage::freeze_account(&f.env, &f.token, &f.alice);
+        });
+        let decision = f.env.as_contract(&f.host, || {
+            evaluate_deposit(&f.env, &f.token, &f.alice, &f.bob)
+        });
+        assert_eq!(
+            decision,
+            ComplianceDecision::Deny(RejectionReason::AccountFrozen)
+        );
+        assert_eq!(policy_call_count(&f.env, &policy), 0);
+
+        // And a frozen recipient denies after the policy screened the first
+        // party exactly once — the chain stops at the first failing gate.
+        f.env.as_contract(&f.host, || {
+            safeguard_storage::unfreeze_account(&f.env, &f.token, &f.alice);
+            safeguard_storage::freeze_account(&f.env, &f.token, &f.bob);
+        });
+        let decision = f.env.as_contract(&f.host, || {
+            evaluate_deposit(&f.env, &f.token, &f.alice, &f.bob)
+        });
+        assert_eq!(
+            decision,
+            ComplianceDecision::Deny(RejectionReason::AccountFrozen)
+        );
+        assert_eq!(policy_call_count(&f.env, &policy), 1);
+    }
+
+    #[test]
+    fn allowed_path_consults_the_policy_exactly_once_per_party() {
+        let f = fixture();
+        let policy = f.env.register(CountingPolicy, (&f.token,));
+        set_policy(&f, Some(&policy), false);
+
+        // An allowed deposit screens both parties: exactly two policy calls.
+        let decision = f.env.as_contract(&f.host, || {
+            evaluate_deposit(&f.env, &f.token, &f.alice, &f.bob)
+        });
+        assert_eq!(decision, ComplianceDecision::Allow);
+        assert_eq!(policy_call_count(&f.env, &policy), 2);
+
+        // An allowed registration adds one more party to screen.
+        let decision = f
+            .env
+            .as_contract(&f.host, || evaluate_register(&f.env, &f.token, &f.alice));
+        assert_eq!(decision, ComplianceDecision::Allow);
+        assert_eq!(policy_call_count(&f.env, &policy), 3);
     }
 }
