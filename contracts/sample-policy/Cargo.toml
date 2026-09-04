@@ -1,0 +1,20 @@
+[package]
+name = "sample-policy"
+description = "Minimal sample implementation of the safeguard-policy wire contract (is_authorized), used by local-network demos as a stand-in for the safeguard-policy polyrepo."
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }

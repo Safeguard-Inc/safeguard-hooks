@@ -8,6 +8,7 @@ members = [
     "crates/policy-client",
     "crates/compliance",
     "contracts/compliance-hooks",
+    "contracts/sample-policy",
 ]
 
 [workspace.package]

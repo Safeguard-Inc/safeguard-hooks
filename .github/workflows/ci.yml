@@ -37,5 +37,5 @@ jobs:
           rustup toolchain install stable --profile minimal
           rustup target add --toolchain stable wasm32v1-none
 
-      - name: Build compliance-hooks contract
-        run: cargo build --target wasm32v1-none -p compliance-hooks
+      - name: Build contracts
+        run: cargo build --target wasm32v1-none -p compliance-hooks -p sample-policy
