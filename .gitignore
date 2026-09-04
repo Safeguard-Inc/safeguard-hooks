@@ -6,3 +6,4 @@
 .env
 .env.*
 !*.schema.json
+__pycache__/
