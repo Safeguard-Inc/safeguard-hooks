@@ -1,0 +1,19 @@
+[package]
+name = "safeguard-authorization"
+description = "Authority and enforcement-scope gates for the Safeguard enforcement contract: who may change enforcement state, and which tokens are within its scope."
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+safeguard-storage = { path = "../storage" }
+safeguard-hook-core = { path = "../hook-core" }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
