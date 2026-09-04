@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/hook-core",
+    "crates/storage",
 ]
 
 [workspace.package]
