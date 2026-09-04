@@ -26,6 +26,11 @@ jobs:
       - name: Tests
         run: cargo test --workspace
 
+      - name: Validate schemas and fixtures
+        run: |
+          python3 -m pip install jsonschema
+          bash scripts/check-schema.sh
+
   wasm:
     name: contract wasm build
     runs-on: ubuntu-latest

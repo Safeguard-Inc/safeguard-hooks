@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PolicyResponse",
+  "description": "The semantic policy answer for one account. The on-chain wire contract is is_authorized(account, token) -> bool; this record is its structured documentation form (used by fixtures, the audit polyrepo, and offline tooling). The enforcement layer treats every negative or unevaluable answer as a denial (fail-closed).",
+  "type": "object",
+  "required": ["allowed"],
+  "properties": {
+    "allowed": {
+      "type": "boolean",
+      "description": "true == Ok(true) from the policy wire contract; false == Ok(false)."
+    },
+    "account": {
+      "$ref": "#/$defs/address"
+    },
+    "token": {
+      "$ref": "#/$defs/address"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "policy_denied",
+        "sanctions_blocked",
+        "jurisdiction_restricted",
+        "registration_required"
+      ],
+      "description": "Optional stable reason a deny is reported with; maps onto RejectionReason names the hooks contract surfaces."
+    }
+  },
+  "$defs": {
+    "address": {
+      "type": "string",
+      "pattern": "^[CG]",
+      "description": "Stellar address: G… for accounts, C… for contracts."
+    }
+  },
+  "additionalProperties": true
+}

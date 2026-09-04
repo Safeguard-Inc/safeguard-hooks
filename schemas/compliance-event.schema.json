@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ComplianceEvent",
+  "description": "Structured event emitted by the hooks contract for the audit bridge. Only state-transition events exist (freeze/unfreeze, bind/unbind, config changes); per-operation approvals are never emitted because any contract can invoke the hook surface and reverts discard events. Events carry addresses and booleans only — never amounts or private financial data.",
+  "type": "object",
+  "required": ["type", "token"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "account_frozen",
+        "account_unfrozen",
+        "token_bound",
+        "token_unbound",
+        "compliance_config_changed"
+      ]
+    },
+    "token": {
+      "$ref": "#/$defs/address",
+      "description": "The token the transition concerns."
+    },
+    "account": {
+      "$ref": "#/$defs/address",
+      "description": "The frozen/unfrozen account (freeze events only)."
+    },
+    "policy": {
+      "description": "The newly configured policy address, or null (compliance_config_changed only).",
+      "oneOf": [{ "$ref": "#/$defs/address" }, { "type": "null" }]
+    },
+    "sac_passthrough": {
+      "type": "boolean",
+      "description": "The newly configured SAC-passthrough flag (compliance_config_changed only)."
+    },
+    "ledger": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optional ledger sequence recorded by the indexer/audit consumer."
+    }
+  },
+  "$defs": {
+    "address": {
+      "type": "string",
+      "pattern": "^[CG]",
+      "description": "Stellar address: G… for accounts, C… for contracts."
+    }
+  },
+  "additionalProperties": true
+}

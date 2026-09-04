@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TokenBinding",
+  "description": "A token admitted into enforcement scope by the admin, with its underlying Stellar Asset Contract when it wraps one. Binding is the admission control that rejects unbound (spoofing) tokens before any gate runs. One binding per token; one policy contract may serve many bindings.",
+  "type": "object",
+  "required": ["token"],
+  "properties": {
+    "token": {
+      "$ref": "#/$defs/address",
+      "description": "The bound token (confidential token or SAC) address."
+    },
+    "sac": {
+      "description": "The token's underlying SAC contract id, or null when the token wraps no SAC.",
+      "oneOf": [{ "$ref": "#/$defs/address" }, { "type": "null" }]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["confidential", "sac", "restricted"],
+      "description": "Informational token class used by fixtures and deployment records."
+    }
+  },
+  "$defs": {
+    "address": {
+      "type": "string",
+      "pattern": "^[CG]",
+      "description": "Stellar address: G… for accounts, C… for contracts."
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FreezeState",
+  "description": "Per-(token, account) freeze state as stored by the contract and exposed through is_frozen. A frozen fund-holding account can neither send, receive, deposit, merge, nor withdraw on the token; unfreezing requires the admin.",
+  "type": "object",
+  "required": ["token", "account", "frozen"],
+  "properties": {
+    "token": {
+      "$ref": "#/$defs/address"
+    },
+    "account": {
+      "$ref": "#/$defs/address"
+    },
+    "frozen": {
+      "type": "boolean"
+    }
+  },
+  "$defs": {
+    "address": {
+      "type": "string",
+      "pattern": "^[CG]",
+      "description": "Stellar address: G… for accounts, C… for contracts."
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ComplianceConfig",
+  "description": "The on-chain compliance configuration written by set_config and read by the enforcement evaluator. Policy is the external safeguard-policy contract address (null when enforcement runs policy-free); sac_passthrough composes the bound SAC's authorized() view. config_version is the monotonic rewrite counter kept by the contract (0 until the first write); it is stored separately on-chain but included here for event/fixture completeness.",
+  "type": "object",
+  "required": ["policy", "sac_passthrough"],
+  "properties": {
+    "policy": {
+      "description": "The configured policy contract address, or null for no policy gate.",
+      "oneOf": [
+        { "$ref": "#/$defs/address" },
+        { "type": "null" }
+      ]
+    },
+    "sac_passthrough": {
+      "type": "boolean",
+      "description": "When true, each fund-holding party must also be authorized() on the token's bound SAC."
+    },
+    "config_version": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Monotonic rewrite counter; informational in config records."
+    }
+  },
+  "$defs": {
+    "address": {
+      "type": "string",
+      "pattern": "^[CG]",
+      "description": "Stellar address: G… for accounts, C… for contracts. Fixtures may use abbreviated placeholders."
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PolicyRequest",
+  "description": "What the enforcement layer sends to the configured safeguard-policy contract for one account of an operation. Deliberately minimal: the token (so one policy can apply per-token rules), the screened account, and the operation context needed to interpret the account's role. It NEVER carries amounts, balances, commitments, or any private financial data — that is the privacy boundary of the enforcement layer.",
+  "type": "object",
+  "required": ["operation", "token", "account"],
+  "properties": {
+    "operation": {
+      "type": "string",
+      "enum": ["register", "deposit", "merge", "transfer", "transfer_from", "withdraw"],
+      "description": "Stable operation name (Operation::name in crates/hook-core)."
+    },
+    "token": {
+      "$ref": "#/$defs/address",
+      "description": "The token being operated on; part of every policy call so a single policy can serve many tokens."
+    },
+    "account": {
+      "$ref": "#/$defs/address",
+      "description": "The account screened by this request (the party whose role the operation names)."
+    },
+    "counterparty": {
+      "$ref": "#/$defs/address",
+      "description": "The other party of a bilateral operation (from for a 'to' request and vice versa); omitted for register/merge."
+    },
+    "spender": {
+      "$ref": "#/$defs/address",
+      "description": "The delegated-flow spender; only present when the screened party participates in a transfer_from."
+    },
+    "context": {
+      "type": "string",
+      "description": "Deployment-defined opaque context the policy may interpret; never private financial data."
+    }
+  },
+  "$defs": {
+    "address": {
+      "type": "string",
+      "pattern": "^[CG]",
+      "description": "Stellar address: G… for accounts, C… for contracts."
+    }
+  },
+  "additionalProperties": true
+}

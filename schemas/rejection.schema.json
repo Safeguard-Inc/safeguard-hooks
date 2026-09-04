@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RejectionReason",
+  "description": "A stable, machine-readable rejection reason produced by the enforcement layer. Mirrors RejectionReason in crates/hook-core/src/reason.rs: the numeric code is the on-chain ContractError code (1-11) and the name is the stable snake_case identifier consumed by tooling and the safeguard-audit polyrepo. Never rename a variant.",
+  "type": "object",
+  "required": ["code", "name"],
+  "properties": {
+    "code": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 11,
+      "description": "ContractError / RejectionReason code. 1-11 are the rejection reasons; the contract adds its own codes above 11 (e.g. 12 already_initialized)."
+    },
+    "name": {
+      "type": "string",
+      "enum": [
+        "unauthorized_caller",
+        "unbound_token",
+        "policy_denied",
+        "account_frozen",
+        "spender_not_authorized",
+        "sanctions_blocked",
+        "jurisdiction_restricted",
+        "sac_authorization_failed",
+        "invalid_configuration",
+        "policy_unavailable",
+        "registration_required"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable meaning; never parsed by tooling."
+    }
+  },
+  "additionalProperties": true
+}

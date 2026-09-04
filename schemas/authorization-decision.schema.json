@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AuthorizationDecision",
+  "description": "The final enforcement decision for one operation/party as recorded in fixtures and consumed by the audit polyrepo. The on-chain form is a revert with a ContractError code; this is its structured documentation form.",
+  "type": "object",
+  "required": ["decision"],
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": ["allow", "deny"],
+      "description": "allow == the gate chain passed; deny == the operation must revert. There is deliberately no 'unknown': the enforcement layer is fail-closed."
+    },
+    "reason": {
+      "$ref": "rejection.schema.json",
+      "description": "Present when decision is deny; the first failing gate in canonical order."
+    }
+  },
+  "additionalProperties": true
+}
