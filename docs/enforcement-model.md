@@ -37,8 +37,8 @@ Confidential token operation
 | `deposit` | depositor `from`, wrapper `to` | full |
 | `transfer` | `from`, `to` | full |
 | `withdraw` | exiting account | full |
-| `merge` *(Phase 2)* | account | full |
-| `transfer_from` *(Phase 2)* | `spender`, `from`, `to` | spender: policy only |
+| `merge` | account | full |
+| `transfer_from` | `spender`, `from`, `to` | spender: policy only |
 
 The spender of a delegated flow holds no funds — the value stays the owner's —
 so freezing and SAC gates (which protect fund ownership) do not apply to it.
@@ -80,11 +80,14 @@ chain is deterministic.
 
 A denial is an `Err(ContractError)` returned to the invoking token. The token
 performs a plain (non-`try`) nested call, so the denial fails that call and the
-whole transaction reverts. There is no state in which a balance was updated and
-a compliance rejection was then produced:
+whole transaction reverts. Freeze administration is the one state the contract
+writes, and each freeze/unfreeze call is itself a single atomic entry point:
+it either completes and emits its event, or reverts entirely. There is no
+state in which a balance was updated and a compliance rejection was then
+produced:
 
 > **Rejected operation = no state transition.**
 
 This invariant is exercised by the invariant and security test suites
-(dedicated suites land with Phase 2 hardening; the evaluator and contract
+(dedicated suites land with Phase 3 hardening; the evaluator and contract
 tests already assert every gate path above).

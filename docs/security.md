@@ -25,7 +25,7 @@ small set of rules that are enforced in code and asserted in tests:
 
 ## Trust surface
 
-* **The admin** can bind/unbind tokens, rotate configuration, and (Phase 2)
+* **The admin** can bind/unbind tokens, rotate configuration, and
   freeze/unfreeze accounts. It cannot move funds or mint.
 * **The policy contract** (`safeguard-policy`) decides account eligibility.
   It is reached only through the fail-closed client, but a malicious or
@@ -36,9 +36,9 @@ small set of rules that are enforced in code and asserted in tests:
 
 ## Current coverage
 
-Phase 1 ships the gate-level security tests (unbound token, unconfigured
-contract, blocked/frozen parties, SAC failures, re-initialization, unauthorized
-admin, per-token isolation) across the compliance and contract crates. The
-dedicated security suite — token spoofing, cross-token contamination,
-configuration attacks, bypass attempts, and the invariant suite — is part of
-the Phase 3 hardening roadmap.
+Phases 1–2 ship the gate-level security tests — unbound token, unconfigured
+contract, blocked/frozen parties (including delegated flows), SAC failures,
+re-initialization, unauthorized admin, freeze event integrity, and multi-token
+isolation across the compliance and contract crates. The dedicated security
+suite — token spoofing, configuration attacks, bypass attempts, and the
+invariant suite — is part of the Phase 3 hardening roadmap.

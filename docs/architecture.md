@@ -71,8 +71,10 @@ operation parties happen at the token, where balances and allowances live.
 
 ## Status
 
-Phase 1 of the roadmap is implemented: the six foundation crates, the
-`compliance-hooks` contract with `initialize` / `set_config` / `bind_token` /
-`unbind_token` and the `register` / `deposit` / `transfer` / `withdraw` hooks,
-typed error codes mirroring `hook-core` reasons, and the event types freeze
-administration will emit in Phase 2.
+Phases 1 and 2 of the roadmap are implemented: the six foundation crates
+and the `compliance-hooks` contract with `initialize`, `set_config`,
+`bind_token` / `unbind_token`, admin-gated `freeze` / `unfreeze` (emitting
+`AccountFrozen` / `AccountUnfrozen` events for the audit bridge), and hook
+enforcement for all six confidential-token operations. Typed error codes
+mirror `hook-core` reasons end to end; multi-token binding is exercised
+through the full contract surface.
