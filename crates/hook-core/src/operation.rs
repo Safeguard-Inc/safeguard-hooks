@@ -143,7 +143,7 @@ mod tests {
         ] {
             let name = op.name();
             assert!(!name.is_empty());
-            assert_eq!(op.parties().len() >= 1, true);
+            assert!(!op.parties().is_empty());
         }
     }
 }
