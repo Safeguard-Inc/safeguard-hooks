@@ -43,7 +43,9 @@ mod test_support;
 
 pub use admin::{admin, set_admin};
 pub use bindings::{bind_token, is_token_bound, token_binding, unbind_token, TokenBinding};
-pub use config::{compliance_config, set_compliance_config, ComplianceConfig};
+pub use config::{
+    bump_config_version, compliance_config, config_version, set_compliance_config, ComplianceConfig,
+};
 pub use freeze::{freeze_account, is_frozen, unfreeze_account};
 pub use keys::DataKey;
 pub use versions::{set_version, version, VERSION};

@@ -64,6 +64,33 @@ pub fn compliance_config(e: &Env) -> Option<ComplianceConfig> {
 pub fn set_compliance_config(e: &Env, config: &ComplianceConfig) {
     e.storage().instance().set(&DataKey::Config, config);
 }
+
+/// Returns how many times the compliance configuration has been rewritten,
+/// or `None` when no configuration has ever been written.
+///
+/// The version starts at `1` on the first write and increments on every
+/// rewrite — including a rewrite that rotates the policy address. It lets
+/// `safeguard-audit` order configuration changes and detect a missed
+/// `ComplianceConfigChanged` event.
+pub fn config_version(e: &Env) -> Option<u32> {
+    if e.storage().instance().has(&DataKey::ConfigVersion) {
+        e.storage().instance().get(&DataKey::ConfigVersion)
+    } else {
+        None
+    }
+}
+
+/// Bumps the configuration version by one (from `None` to `1`).
+///
+/// # Security warning
+///
+/// This function does **not** authorize the caller. It must only be invoked
+/// from the admin-gated configuration entry point, exactly once per
+/// configuration write it versions.
+pub fn bump_config_version(e: &Env) {
+    let next = config_version(e).unwrap_or(0) + 1;
+    e.storage().instance().set(&DataKey::ConfigVersion, &next);
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -104,6 +131,40 @@ mod tests {
                     sac_passthrough: false
                 })
             );
+        });
+    }
+
+    #[test]
+    fn config_version_tracks_rewrites() {
+        let (e, contract) = host_env();
+        let policy_a = account(&e);
+        let policy_b = account(&e);
+
+        e.as_contract(&contract, || {
+            // No version until the first write.
+            assert_eq!(config_version(&e), None);
+
+            // The first write lands on version 1.
+            set_compliance_config(
+                &e,
+                &ComplianceConfig {
+                    policy: Some(policy_a.clone()),
+                    sac_passthrough: false,
+                },
+            );
+            bump_config_version(&e);
+            assert_eq!(config_version(&e), Some(1));
+
+            // A policy rotation is a new configuration version.
+            set_compliance_config(
+                &e,
+                &ComplianceConfig {
+                    policy: Some(policy_b),
+                    sac_passthrough: true,
+                },
+            );
+            bump_config_version(&e);
+            assert_eq!(config_version(&e), Some(2));
         });
     }
 }

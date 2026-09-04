@@ -23,6 +23,10 @@ pub enum DataKey {
     Admin,
     /// The active [`crate::ComplianceConfig`] (instance storage).
     Config,
+    /// Monotonic count of compliance-configuration rewrites (instance
+    /// storage). Lets `safeguard-audit` order config changes and detect a
+    /// missed `ComplianceConfigChanged` event (gap detection).
+    ConfigVersion,
     /// The state-layout version of the contract (instance storage).
     Version,
     /// Marks `Address` (a token contract) as bound to this enforcement
@@ -41,7 +45,9 @@ impl DataKey {
     /// Namespace prefix used in documentation and schema tooling.
     pub fn class(&self) -> &'static str {
         match self {
-            DataKey::Admin | DataKey::Config | DataKey::Version => "instance",
+            DataKey::Admin | DataKey::Config | DataKey::ConfigVersion | DataKey::Version => {
+                "instance"
+            }
             DataKey::TokenBinding(_) | DataKey::Freeze(..) => "persistent",
         }
     }
@@ -59,6 +65,7 @@ mod tests {
         let b = Address::generate(&e);
         assert_eq!(DataKey::Admin.class(), "instance");
         assert_eq!(DataKey::Config.class(), "instance");
+        assert_eq!(DataKey::ConfigVersion.class(), "instance");
         assert_eq!(DataKey::Version.class(), "instance");
         assert_eq!(DataKey::TokenBinding(a.clone()).class(), "persistent");
         assert_eq!(DataKey::Freeze(a, b).class(), "persistent");
