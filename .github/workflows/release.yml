@@ -1,0 +1,35 @@
+name: release
+
+# Builds the deployable contract wasm on a version tag and attaches it to the
+# release. The wasm binaries are the artifacts a deployment installs; the
+# tag name is the version recorded in CHANGELOG.md.
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  wasm:
+    name: build and publish contract wasm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain with wasm target
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add --toolchain stable wasm32v1-none
+
+      - name: Build contracts (release)
+        run: |
+          cargo build --target wasm32v1-none --release -p compliance-hooks -p sample-policy
+          mkdir -p dist
+          cp target/wasm32v1-none/release/compliance_hooks.wasm dist/compliance-hooks.wasm
+          cp target/wasm32v1-none/release/sample_policy.wasm dist/sample-policy.wasm
+
+      - name: Publish wasm to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.wasm --generate-notes

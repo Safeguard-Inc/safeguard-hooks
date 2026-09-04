@@ -1,0 +1,45 @@
+name: testnet
+
+# Testnet preparation, run on demand by a maintainer (workflow_dispatch).
+#
+# Confidential Tokens on Stellar are a developer preview, and deploying to
+# public Testnet signs real transactions with the operator's secret key, so
+# this workflow deliberately performs NO network calls: it verifies that the
+# deployable artifacts and the testnet configuration record are sound, then
+# prints the operator checklist from docs/testnet.md. Actual signed deploys
+# run from an operator machine per that runbook (or by re-running the same
+# stellar commands locally with SAFEGUARD_ADMIN_SK exported) — never from
+# shared CI, where a secret would be exposed to every job runner.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    name: testnet readiness rehearsal
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain with wasm target
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add --toolchain stable wasm32v1-none
+
+      - name: Build contracts
+        run: cargo build --target wasm32v1-none --release -p compliance-hooks -p sample-policy
+
+      - name: Validate testnet deployment record
+        run: |
+          python3 -m pip install jsonschema
+          bash scripts/check-schema.sh
+          python3 -c "import json; json.load(open('deployments/testnet/configuration.example.json')); print('testnet template parses')"
+
+      - name: Operator checklist (no network calls made here)
+        run: |
+          echo "Follow docs/testnet.md from an operator machine:"
+          echo "  1. export SAFEGUARD_ADMIN_SK  (never commit or paste it in CI)"
+          echo "  2. stellar keys fund / use an existing funded keypair"
+          echo "  3. stellar contract deploy --wasm dist/compliance-hooks.wasm"
+          echo "  4. copy deployments/testnet/configuration.example.json to configuration.json"
+          echo "  5. run the admin lifecycle: initialize -> set_config -> bind_token"

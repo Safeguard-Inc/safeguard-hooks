@@ -1,0 +1,24 @@
+name: Policy integration
+description: Work on the is_authorized seam with safeguard-policy (client, wire contract, demos, fixtures).
+title: "policy: "
+labels: ["policy"]
+body:
+  - type: textarea
+    id: change
+    attributes:
+      label: What changes on the seam?
+      description: The wire call, the fail-closed translation, a demo policy, or fixture shapes. Remember the seam is cross-repo (interfaces/policy/policy.md).
+    validations:
+      required: true
+  - type: textarea
+    id: boundary
+    attributes:
+      label: Boundary check
+      description: Confirm the change does not move rule evaluation into the enforcement layer (docs/policy-integration.md).
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Test coverage
+      description: Deny-list/allow-all mocks, unavailable-policy (fail-closed) path, multi-token policy serving.

@@ -1,0 +1,30 @@
+name: Testing
+description: Suite work — unit, security, invariant, property, integration, or fixture coverage.
+title: "testing: "
+labels: ["testing"]
+body:
+  - type: dropdown
+    id: suite
+    attributes:
+      label: Suite
+      options:
+        - Unit tests
+        - Security suite (tests/security.rs)
+        - Invariant suite (tests/invariants.rs)
+        - Property suite (tests/fuzz.rs)
+        - Live-ledger integration (scripts/integration-local.sh)
+        - Schema/fixture coverage (scripts/check-schema.sh)
+    validations:
+      required: true
+  - type: textarea
+    id: gap
+    attributes:
+      label: Coverage gap
+      description: What scenario is untested today, and which invariant or gate does it protect?
+    validations:
+      required: true
+  - type: textarea
+    id: determinism
+    attributes:
+      label: Determinism notes
+      description: For property tests — the oracle used and why outcomes remain deterministic.

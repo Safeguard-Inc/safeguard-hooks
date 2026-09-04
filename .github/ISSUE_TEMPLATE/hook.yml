@@ -1,0 +1,28 @@
+name: Hook
+description: A hook or operation enforcement change (register, deposit, merge, transfer, transfer_from, withdraw).
+title: "hook: "
+labels: ["hooks"]
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Desired enforcement behavior
+      description: Which operation, which parties, and what should gate them.
+    validations:
+      required: true
+  - type: textarea
+    id: surfaces
+    attributes:
+      label: Protocol surfaces
+      description: List the interfaces/schemas/docs that must move with this change (interfaces/hooks, schemas/policy-request, docs/enforcement-model, …).
+  - type: dropdown
+    id: tests
+    attributes:
+      label: Test coverage needed
+      options:
+        - Unit test of the gate path
+        - Security suite case (bypass/spoofing)
+        - Invariant/property suite extension
+        - All of the above
+    validations:
+      required: true

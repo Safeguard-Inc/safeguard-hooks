@@ -1,0 +1,41 @@
+name: security
+
+# The explicit hardening gate. ci.yml runs fmt/clippy/tests broadly; this
+# workflow names the enforcement-critical suites so a PR touching gate
+# behavior must stay green against them before merge, matching the security
+# posture in docs/security.md and the threat-model controls in
+# docs/threat-model.md. Runs on every pull request (mandatory before merge).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  hardening:
+    name: security · invariants · property
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup component add --toolchain stable clippy
+
+      - name: Clippy (warnings denied)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Security suite
+        run: cargo test -p compliance-hooks --test security
+
+      - name: Invariant suite
+        run: cargo test -p compliance-hooks --test invariants
+
+      - name: Property suite
+        run: cargo test -p compliance-hooks --test fuzz
+
+      - name: Schema and fixture validation
+        run: |
+          python3 -m pip install jsonschema
+          bash scripts/check-schema.sh

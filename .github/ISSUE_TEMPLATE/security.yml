@@ -1,0 +1,29 @@
+name: Security
+description: Threat-model review, hardening, or a suspected vulnerability (report real vulnerabilities via SECURITY.md, privately).
+title: "security: "
+labels: ["security"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - Threat-model review
+        - Hardening / new attack test
+        - Suspected vulnerability (see SECURITY.md for private reporting first)
+    validations:
+      required: true
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Attack scenario
+      description: Token spoofing, bypass, cross-token contamination, configuration attack, replay, or other — with the expected and actual outcomes.
+    validations:
+      required: true
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Invariants at risk
+      description: Which invariant could break (rejected op = no state change, isolation per token, no unauthorized administration, read-only hooks)?
+    validations:
+      required: true

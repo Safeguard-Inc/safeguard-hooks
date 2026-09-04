@@ -1,0 +1,30 @@
+name: Documentation
+description: Docs, interfaces, or schemas work.
+title: "docs: "
+labels: ["documentation"]
+body:
+  - type: textarea
+    id: topic
+    attributes:
+      label: What to document or fix
+      description: Which doc/interface/schema, and what is missing or wrong.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - docs/ (architecture, enforcement-model, hook-lifecycle, …)
+        - interfaces/ (hooks, policy wire, events)
+        - schemas/ (JSON Schema + fixtures)
+        - README / governance
+    validations:
+      required: true
+  - type: textarea
+    id: accuracy
+    attributes:
+      label: Accuracy check
+      description: Which code or test pins the claim you are documenting?
+    validations:
+      required: true
