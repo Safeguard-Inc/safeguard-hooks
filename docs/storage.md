@@ -12,6 +12,7 @@ lives.
 | --- | ----- | ----- |
 | `Admin` | instance | the administrative authority (single address) |
 | `Config` | instance | the active [`ComplianceConfig`] — `policy` address and `sac_passthrough` flag |
+| `ConfigVersion` | instance | monotonic count of configuration rewrites (policy rotation included) — the audit ordering anchor |
 | `Version` | instance | state-layout version for forward migrations |
 | `TokenBinding(token)` | persistent | whether `token` is in scope and, when it wraps a SAC, the SAC address |
 | `Freeze(token, account)` | persistent | per-(token, account) freeze flag |
@@ -42,5 +43,17 @@ operation. `Config` present — even with `policy: None` and
 `sac_passthrough: false` — means enforcement is on: the freeze gate always
 applies, and bindings are meaningful. This is the fail-closed lifecycle
 described in `docs/enforcement-model.md`.
+
+### Configuration versioning
+
+`ConfigVersion` counts real configuration rewrites: the first `set_config`
+lands on `1`, a no-op rewrite (identical policy and SAC flag) changes
+nothing, and every policy rotation or SAC-flag change bumps the counter.
+The count is exposed as `config_version()` and paired with each
+`ComplianceConfigChanged` event, so `safeguard-audit` can order
+configuration changes and detect a missed event (gap detection). The same
+transition discipline applies to bindings: `TokenBound`/`TokenUnbound`
+events fire only when the binding actually changes, and hook evaluations
+never write — or bump — any of this state.
 
 [`ComplianceConfig`]: ../crates/storage/src/config.rs

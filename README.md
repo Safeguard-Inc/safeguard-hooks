@@ -107,7 +107,7 @@ invariant suite (read-only enforcement, frozen-until-unfrozen, exhaustive
 oracle parity, out-of-scope never allows), and a deterministic
 random-sequence property suite that drives thousands of admin/hook
 interleavings against an enforcement oracle. The contract compiles to
-WebAssembly (`wasm32v1-none`) and 113 tests pass across the workspace.
+WebAssembly (`wasm32v1-none`) and 140 tests pass across the workspace.
 
 The enforcement lifecycle is additionally proven against a **real Soroban
 ledger**: `scripts/integration-local.sh` deploys the contract on the
@@ -117,8 +117,13 @@ revert code (`docs/deployment.md`, `docs/testnet.md`); the same flow runs
 in CI (`.github/workflows/integration.yml`). The `safeguard-hooks`
 operator CLI (`docs/cli.md`) inspects and configures the on-chain layer
 through the stellar CLI, decoding revers into the stable rejection names.
-Phase 4 (advanced policy integration, policy versioning, deployment
-tooling, performance) follows as a separate batch.
+
+Phase 4 has begun with **configuration versioning and state-transition
+events**: every real `set_config` bumps a monotonic `config_version` and
+emits `ComplianceConfigChanged`, and `bind_token`/`unbind_token` now emit
+`TokenBound`/`TokenUnbound` only on actual binding changes — the audit
+gap where policy rotations and scope changes previously left no record.
+All writes are no-ops when nothing changes, verified on the live ledger.
 
 ## Building and testing
 
@@ -151,7 +156,7 @@ scripts/integration-local.sh
 | 1 | `hook-core`, `policy-client`, `authorization`, `compliance`, `storage`, `events`; register / deposit / transfer / withdraw hook enforcement | ✅ done |
 | 2 | Delegated transfers, freeze administration with events, SAC passthrough, multi-token binding | ✅ done |
 | 3 | Security hardening, invariants, fuzzing, live-ledger integration, operator CLI | ✅ done |
-| 4 | Advanced policy integration, policy versioning, deployment tooling, performance | |
+| 4 | Advanced policy integration, policy versioning, deployment tooling, performance | 🚧 config versioning + transition events (this batch) |
 
 ## Documentation
 

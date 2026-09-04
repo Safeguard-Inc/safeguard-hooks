@@ -77,4 +77,11 @@ enforcement for all six confidential-token operations. Typed error codes
 mirror `hook-core` reasons end to end; multi-token binding is exercised
 through the full contract surface. Phase 3 added the explicit security,
 invariant, and deterministic property suites described in
-`docs/security.md` — 113 tests pass across the workspace.
+`docs/security.md` — 140 tests pass across the workspace.
+
+Phase 4 (in progress) opened with configuration versioning and
+state-transition events: `set_config` bumps a monotonic configuration
+version and emits `ComplianceConfigChanged`, and binding changes emit
+`TokenBound` / `TokenUnbound` — each only when state actually changes —
+closing the audit gap where policy rotations and scope changes left no
+record.
