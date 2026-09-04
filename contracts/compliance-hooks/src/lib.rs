@@ -61,12 +61,16 @@ use safeguard_compliance::{
     evaluate_deposit, evaluate_merge, evaluate_register, evaluate_transfer, evaluate_transfer_from,
     evaluate_withdraw,
 };
-use safeguard_events::{emit_account_frozen, emit_account_unfrozen};
+use safeguard_events::{
+    emit_account_frozen, emit_account_unfrozen, emit_compliance_config_changed, emit_token_bound,
+    emit_token_unbound,
+};
 use safeguard_hook_core::{ComplianceDecision, RejectionReason};
 use safeguard_storage::{
-    bind_token as storage_bind, compliance_config as storage_config,
-    freeze_account as storage_freeze, is_frozen as storage_is_frozen, is_token_bound, set_admin,
-    set_compliance_config, unbind_token as storage_unbind, unfreeze_account as storage_unfreeze,
+    bind_token as storage_bind, bump_config_version, compliance_config as storage_config,
+    config_version as storage_config_version, freeze_account as storage_freeze,
+    is_frozen as storage_is_frozen, is_token_bound, set_admin, set_compliance_config,
+    token_binding, unbind_token as storage_unbind, unfreeze_account as storage_unfreeze,
     ComplianceConfig,
 };
 
@@ -141,34 +145,57 @@ impl ComplianceHooks {
     /// Writes the compliance configuration (admin-gated). Until this write,
     /// enforcement is off and every hook fails with
     /// [`ContractError::InvalidConfiguration`].
+    ///
+    /// A rewrite that changes nothing is a no-op (no event, no version
+    /// bump); a real change — including a policy rotation — bumps the
+    /// configuration version and emits a `ComplianceConfigChanged` event
+    /// for the audit bridge.
     pub fn set_config(
         e: Env,
         policy: Option<Address>,
         sac_passthrough: bool,
     ) -> Result<(), ContractError> {
         admin_gate(&e)?;
-        set_compliance_config(
-            &e,
-            &ComplianceConfig {
-                policy,
-                sac_passthrough,
-            },
-        );
+        let next = ComplianceConfig {
+            policy,
+            sac_passthrough,
+        };
+        if storage_config(&e).as_ref() == Some(&next) {
+            return Ok(());
+        }
+        set_compliance_config(&e, &next);
+        bump_config_version(&e);
+        emit_compliance_config_changed(&e, &next.policy, next.sac_passthrough);
         Ok(())
     }
 
     /// Admits `token` into enforcement scope (admin-gated), recording its
-    /// underlying SAC when it has one.
+    /// underlying SAC when it has one. Binding a token to the same SAC it is
+    /// already bound to is a no-op; a real binding change emits a
+    /// `TokenBound` event.
     pub fn bind_token(e: Env, token: Address, sac: Option<Address>) -> Result<(), ContractError> {
         admin_gate(&e)?;
+        let same = token_binding(&e, &token)
+            .map(|binding| binding.sac == sac)
+            .unwrap_or(false);
+        if same {
+            return Ok(());
+        }
         storage_bind(&e, &token, sac.as_ref());
+        emit_token_bound(&e, &token);
         Ok(())
     }
 
-    /// Removes `token` from enforcement scope (admin-gated). Idempotent.
+    /// Removes `token` from enforcement scope (admin-gated). Unbinding an
+    /// unbound token is a no-op; a real removal emits a `TokenUnbound`
+    /// event.
     pub fn unbind_token(e: Env, token: Address) -> Result<(), ContractError> {
         admin_gate(&e)?;
+        if !is_token_bound(&e, &token) {
+            return Ok(());
+        }
         storage_unbind(&e, &token);
+        emit_token_unbound(&e, &token);
         Ok(())
     }
 
@@ -268,6 +295,14 @@ impl ComplianceHooks {
         storage_config(&e)
     }
 
+    /// How many times the compliance configuration has been rewritten (0
+    /// until the first `set_config`). Rotating the policy is a rewrite, so
+    /// this is the on-chain ordering anchor `safeguard-audit` pairs with
+    /// `ComplianceConfigChanged` events.
+    pub fn config_version(e: Env) -> u32 {
+        storage_config_version(&e).unwrap_or(0)
+    }
+
     /// Whether `account` is frozen on `token`.
     pub fn is_frozen(e: Env, token: Address, account: Address) -> bool {
         storage_is_frozen(&e, &token, &account)
@@ -309,7 +344,9 @@ mod tests {
     use soroban_sdk::testutils::{Address as _, EnvTestConfig, Events as _};
     use soroban_sdk::{contract, contractimpl, symbol_short, Event as _, IntoVal, Symbol};
 
-    use safeguard_events::{AccountFrozen, AccountUnfrozen};
+    use safeguard_events::{
+        AccountFrozen, AccountUnfrozen, ComplianceConfigChanged, TokenBound, TokenUnbound,
+    };
 
     /// Deny-list policy pinned to one token (see the compliance crate tests).
     #[contract]
@@ -818,6 +855,114 @@ mod tests {
             try_before_transfer_from(&env, &hooks, &token, &spender, &alice, &bob),
             Err(ContractError::PolicyDenied)
         );
+    }
+
+    #[test]
+    fn config_rewrites_bump_the_version_and_emit_events_only_on_changes() {
+        let f = fixture();
+        let client = ComplianceHooksClient::new(&f.env, &f.hooks);
+
+        // The fixture's initial set_config landed on version 1.
+        assert_eq!(client.config_version(), 1);
+
+        // Rewriting the identical configuration is a no-op: no event, no
+        // version bump.
+        let current = client.config().unwrap();
+        client
+            .mock_all_auths()
+            .set_config(&current.policy, &current.sac_passthrough);
+        assert_eq!(f.env.events().all(), []);
+        assert_eq!(client.config_version(), 1);
+
+        // A policy rotation is a real rewrite: one event, one bump.
+        let policy_b = policy_allowing(&f.env, &f.token);
+        client
+            .mock_all_auths()
+            .set_config(&Some(policy_b.clone()), &true);
+        assert_eq!(
+            f.env.events().all(),
+            [ComplianceConfigChanged {
+                policy: Some(policy_b.clone()),
+                sac_passthrough: true,
+            }
+            .to_xdr(&f.env, &f.hooks)]
+        );
+        assert_eq!(client.config_version(), 2);
+
+        // Flipping only the SAC flag is also a rewrite.
+        client
+            .mock_all_auths()
+            .set_config(&Some(policy_b.clone()), &false);
+        assert_eq!(
+            f.env.events().all(),
+            [ComplianceConfigChanged {
+                policy: Some(policy_b),
+                sac_passthrough: false,
+            }
+            .to_xdr(&f.env, &f.hooks)]
+        );
+        assert_eq!(client.config_version(), 3);
+    }
+
+    #[test]
+    fn config_version_is_zero_until_the_first_write() {
+        let env = Env::new_with_config(EnvTestConfig {
+            capture_snapshot_at_drop: false,
+        });
+        let hooks = env.register(ComplianceHooks, ());
+        let client = ComplianceHooksClient::new(&env, &hooks);
+
+        assert_eq!(client.config_version(), 0);
+    }
+
+    #[test]
+    fn bind_and_unbind_emit_events_only_on_state_changes() {
+        let env = Env::new_with_config(EnvTestConfig {
+            capture_snapshot_at_drop: false,
+        });
+        let hooks = env.register(ComplianceHooks, ());
+        let token = Address::generate(&env);
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+        let sac = env.register(MockSac, (&alice, &bob));
+        let policy = policy_allowing(&env, &token);
+
+        let client = ComplianceHooksClient::new(&env, &hooks);
+        client.initialize(&Address::generate(&env));
+        client.mock_all_auths().set_config(&Some(policy), &true);
+        client
+            .mock_all_auths()
+            .bind_token(&token, &Some(sac.clone()));
+
+        // Re-binding to the same SAC is a no-op.
+        client.mock_all_auths().bind_token(&token, &Some(sac));
+        assert_eq!(env.events().all(), []);
+
+        // Re-binding with a different binding (no SAC) is a real change.
+        client.mock_all_auths().bind_token(&token, &None);
+        assert_eq!(
+            env.events().all(),
+            [TokenBound {
+                token: token.clone()
+            }
+            .to_xdr(&env, &hooks)]
+        );
+        assert!(client.token_is_bound(&token));
+
+        // Unbinding a bound token emits one event and revokes scope.
+        client.mock_all_auths().unbind_token(&token);
+        assert_eq!(
+            env.events().all(),
+            [TokenUnbound {
+                token: token.clone()
+            }
+            .to_xdr(&env, &hooks)]
+        );
+        assert!(!client.token_is_bound(&token));
+
+        // Unbinding an unbound token is a no-op.
+        client.mock_all_auths().unbind_token(&token);
+        assert_eq!(env.events().all(), []);
     }
 
     #[test]

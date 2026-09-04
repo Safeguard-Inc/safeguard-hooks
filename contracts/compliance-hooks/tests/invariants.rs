@@ -23,18 +23,21 @@ use common::*;
 use soroban_sdk::testutils::{Address as _, EnvTestConfig};
 use soroban_sdk::{Address, Env};
 
-/// The observable enforcement state used for snapshot comparisons: which
-/// tokens are bound and who is frozen where.
-fn snapshot(c: &Ctx) -> Vec<bool> {
+/// The observable enforcement state used for snapshot comparisons: the
+/// configuration version, which tokens are bound, and who is frozen where.
+/// The configuration version only moves on admin rewrites; hook evaluations
+/// must never bump it.
+fn snapshot(c: &Ctx) -> Vec<u32> {
     let tokens = [&c.token_a, &c.token_b];
     let accounts = [&c.alice, &c.bob, &c.carol];
-    let mut s = Vec::with_capacity(2 + 6);
+    let mut s = Vec::with_capacity(2 + 6 + 1);
+    s.push(view_u32(&c.env, &c.hooks, "config_version", ()));
     for t in &tokens {
-        s.push(c.token_is_bound(t));
+        s.push(c.token_is_bound(t) as u32);
     }
     for t in &tokens {
         for a in &accounts {
-            s.push(c.is_frozen(t, a));
+            s.push(c.is_frozen(t, a) as u32);
         }
     }
     s

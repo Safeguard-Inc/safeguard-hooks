@@ -124,6 +124,19 @@ where
     }
 }
 
+/// Reads a `u32` view (e.g. `config_version`).
+pub fn view_u32<A>(env: &Env, hooks: &Address, func: &str, args: A) -> u32
+where
+    A: IntoVal<Env, Vec<Val>>,
+{
+    let symbol = Symbol::new(env, func);
+    match env.try_invoke_contract::<u32, ContractError>(hooks, &symbol, args.into_val(env)) {
+        Ok(Ok(n)) => n,
+        Ok(Err(_)) => panic!("{func} returned a non-u32"),
+        Err(_) => panic!("{func} failed at the host level"),
+    }
+}
+
 // ################## DEPLOYMENT CONTEXT ##################
 
 /// A deployed, configured, two-token enforcement contract.

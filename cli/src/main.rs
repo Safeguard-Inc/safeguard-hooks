@@ -295,6 +295,8 @@ impl App {
             Some("null") | None => println!("config: null (enforcement off — hooks fail closed)"),
             Some(c) => println!("config: {c}"),
         }
+        let version = self.read("config_version", &[])?;
+        println!("config_version: {}", value_or(version.as_deref(), "?"));
 
         // Resolve the requested token set: one alias/address, or all
         // configured tokens.
