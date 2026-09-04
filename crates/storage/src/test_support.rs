@@ -28,7 +28,9 @@ pub fn host_env() -> (Env, Address) {
     // Snapshot capture at drop is disabled: the auto-generated
     // `test_snapshots/` files are environment dumps, not assertions, and they
     // churn on every SDK bump. Behaviour is asserted explicitly instead.
-    let e = Env::new_with_config(EnvTestConfig { capture_snapshot_at_drop: false });
+    let e = Env::new_with_config(EnvTestConfig {
+        capture_snapshot_at_drop: false,
+    });
     let host = e.register(Host, ());
     (e, host)
 }
