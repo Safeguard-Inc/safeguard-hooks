@@ -301,6 +301,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "compliance-hooks"
+version = "0.1.0"
+dependencies = [
+ "safeguard-authorization",
+ "safeguard-compliance",
+ "safeguard-hook-core",
+ "safeguard-storage",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"

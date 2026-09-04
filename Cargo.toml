@@ -7,6 +7,7 @@ members = [
     "crates/authorization",
     "crates/policy-client",
     "crates/compliance",
+    "contracts/compliance-hooks",
 ]
 
 [workspace.package]
@@ -19,4 +20,4 @@ keywords = ["stellar", "soroban", "confidential-tokens", "compliance"]
 categories = ["no-std", "wasm"]
 
 [workspace.dependencies]
-soroban-sdk = { version = "27.0.6", features = ["experimental_spec_shaking_v2"] }
+soroban-sdk = { version = "27.0.6" }
