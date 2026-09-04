@@ -88,6 +88,10 @@ produced:
 
 > **Rejected operation = no state transition.**
 
-This invariant is exercised by the invariant and security test suites
-(dedicated suites land with Phase 3 hardening; the evaluator and contract
-tests already assert every gate path above).
+This invariant is exercised by the Phase 3 hardening suites in
+`contracts/compliance-hooks/tests/`: the security suite asserts each
+threat-model attack reverts atomically, the invariant suite proves hook
+evaluations never write enforcement state and that out-of-scope operations
+never allow, and the property suite (`fuzz.rs`) holds every randomized
+admin/hook sequence to this invariant across thousands of steps. The
+evaluator and contract tests assert every gate path above as well.

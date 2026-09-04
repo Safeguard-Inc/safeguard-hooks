@@ -73,6 +73,7 @@ production financial infrastructure.
 ```text
 contracts/
   compliance-hooks/    Soroban enforcement contract — all six hooks + freeze ops — ✅ phases 1–2
+  tests/ (in-package)   security, invariant, and deterministic property suites — ✅ phase 3 hardening
 crates/
   hook-core/           Environment-free domain model (operations, parties, decisions) — ✅
   policy-client/       Typed fail-closed bridge to the safeguard-policy contract — ✅
@@ -88,18 +89,23 @@ docs/                  Architecture and operational documentation — ✅ core s
 audit/ cli/ …          Follow-on batches (Phase 2–4)
 ```
 
-## Status: Phases 1–2 complete
+## Status: Phases 1–3 (hardening) complete
 
-Phase 1 (the foundation) and Phase 2 are implemented, tested, and pushed:
-the six supporting crates and the deployable `compliance-hooks` contract
-with hook enforcement for all six confidential-token operations
-(`register`, `deposit`, `transfer`, `transfer_from`, `merge`, `withdraw`),
-admin-gated freeze/unfreeze with events for the audit bridge, SAC
-passthrough, and multi-token binding. The contract compiles to WebAssembly
-(`wasm32v1-none`) and 90 unit tests pass across the workspace.
+Phase 1 (the foundation), Phase 2, and the Phase 3 hardening suites are
+implemented, tested, and pushed: the six supporting crates and the
+deployable `compliance-hooks` contract with hook enforcement for all six
+confidential-token operations (`register`, `deposit`, `transfer`,
+`transfer_from`, `merge`, `withdraw`), admin-gated freeze/unfreeze with
+events for the audit bridge, SAC passthrough, and multi-token binding.
+The Phase 3 hardening adds an explicit threat-model security suite, an
+invariant suite (read-only enforcement, frozen-until-unfrozen, exhaustive
+oracle parity, out-of-scope never allows), and a deterministic
+random-sequence property suite that drives thousands of admin/hook
+interleavings against an enforcement oracle. The contract compiles to
+WebAssembly (`wasm32v1-none`) and 113 tests pass across the workspace.
 
-Phase 3 (security hardening, invariants, fuzzing, testnet integration,
-CLI) and Phase 4 follow as separate batches.
+Testnet integration and the CLI remain in Phase 3; Phase 4 follows as a
+separate batch.
 
 ## Building and testing
 
@@ -123,7 +129,7 @@ cargo build --target wasm32v1-none --release -p compliance-hooks
 | ----- | ----- | ------ |
 | 1 | `hook-core`, `policy-client`, `authorization`, `compliance`, `storage`, `events`; register / deposit / transfer / withdraw hook enforcement | ✅ done |
 | 2 | Delegated transfers, freeze administration with events, SAC passthrough, multi-token binding | ✅ done |
-| 3 | Security hardening, invariant tests, fuzzing, testnet integration, CLI | next |
+| 3 | Security hardening, invariant tests, fuzzing → testnet integration, CLI | ✅ hardening suite (testnet + CLI next) |
 | 4 | Advanced policy integration, policy versioning, deployment tooling, performance | |
 
 ## Documentation

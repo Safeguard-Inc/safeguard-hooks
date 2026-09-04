@@ -39,8 +39,20 @@ small set of rules that are enforced in code and asserted in tests:
 The gate-level security tests live in the compliance and contract crates
 (unbound token, unconfigured contract, blocked/frozen parties including
 delegated flows, SAC failures, freeze event integrity, multi-token
-isolation). The dedicated Phase 3 security suite (`tests/security.rs`)
-asserts the threat-model attacks through the full contract surface — token
-spoofing, bypass across every operation, cross-token contamination, and
-configuration attacks — with exact denial codes. The invariant suite
-(rejected operation = no state change) is the remaining hardening item.
+isolation). The Phase 3 hardening suites in `contracts/compliance-hooks/tests/`
+complete the coverage through the full contract surface:
+
+* `security.rs` — the explicit threat-model attacks with exact denial codes:
+  token spoofing, bypass across every operation, cross-token
+  contamination, and configuration attacks (including rotation and
+  double-initialization).
+* `invariants.rs` — the system properties behind this page: hook
+  evaluations never write enforcement state; a frozen account stays frozen
+  under every policy/configuration transition until an admin unfreezes it;
+  every operation outcome matches the enforcement oracle exhaustively;
+  out-of-scope (unbound, unconfigured) never allows.
+* `fuzz.rs` — deterministic, seeded random sequences of admin transitions
+  and hook evaluations, asserting oracle parity after every step. This
+  catches gate-order regressions, cross-token/account contamination in
+  randomized states, and state drift (for example a freeze that silently
+  failed to survive an unbind) that hand-written cases miss.

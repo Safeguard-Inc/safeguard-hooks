@@ -69,12 +69,12 @@ invokes the matching `before_*` hook here and applies nothing when the call
 fails. The token remains the gatekeeper of its own flows: signature checks for
 operation parties happen at the token, where balances and allowances live.
 
-## Status
-
-Phases 1 and 2 of the roadmap are implemented: the six foundation crates
+Phases 1–3 of the roadmap are implemented: the six foundation crates
 and the `compliance-hooks` contract with `initialize`, `set_config`,
 `bind_token` / `unbind_token`, admin-gated `freeze` / `unfreeze` (emitting
 `AccountFrozen` / `AccountUnfrozen` events for the audit bridge), and hook
 enforcement for all six confidential-token operations. Typed error codes
 mirror `hook-core` reasons end to end; multi-token binding is exercised
-through the full contract surface.
+through the full contract surface. Phase 3 added the explicit security,
+invariant, and deterministic property suites described in
+`docs/security.md` — 113 tests pass across the workspace.
