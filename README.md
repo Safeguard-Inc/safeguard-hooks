@@ -74,6 +74,10 @@ production financial infrastructure.
 contracts/
   compliance-hooks/    Soroban enforcement contract — all six hooks + freeze ops — ✅ phases 1–2
   tests/ (in-package)   security, invariant, and deterministic property suites — ✅ phase 3 hardening
+  sample-policy/       Minimal demo implementation of the safeguard-policy wire contract (is_authorized) — ✅
+scripts/
+  integration-local.sh Live-ledger integration against the containerized local network — ✅
+deployments/           Per-environment contract-id/configuration reference — ✅
 crates/
   hook-core/           Environment-free domain model (operations, parties, decisions) — ✅
   policy-client/       Typed fail-closed bridge to the safeguard-policy contract — ✅
@@ -104,8 +108,13 @@ random-sequence property suite that drives thousands of admin/hook
 interleavings against an enforcement oracle. The contract compiles to
 WebAssembly (`wasm32v1-none`) and 113 tests pass across the workspace.
 
-Testnet integration and the CLI remain in Phase 3; Phase 4 follows as a
-separate batch.
+The enforcement lifecycle is additionally proven against a **real Soroban
+ledger**: `scripts/integration-local.sh` deploys the contract on the
+containerized local network (`stellar container start local`), walks the
+full admin lifecycle with real signed transactions, and asserts every
+revert code (`docs/deployment.md`, `docs/testnet.md`); the same flow runs
+in CI (`.github/workflows/integration.yml`). The operator CLI remains in
+Phase 3; Phase 4 follows as a separate batch.
 
 ## Building and testing
 
@@ -120,7 +129,15 @@ Contracts compile to WebAssembly for deployment (the `wasm32v1-none`
 target is pinned in `rust-toolchain.toml`):
 
 ```bash
-cargo build --target wasm32v1-none --release -p compliance-hooks
+cargo build --target wasm32v1-none --release -p compliance-hooks -p sample-policy
+```
+
+A live-ledger rehearsal (Docker + stellar CLI ≥ 28 required) runs the
+entire deployment and enforcement flow with assertions on every revert
+code:
+
+```bash
+scripts/integration-local.sh
 ```
 
 ## Phase roadmap
@@ -129,7 +146,7 @@ cargo build --target wasm32v1-none --release -p compliance-hooks
 | ----- | ----- | ------ |
 | 1 | `hook-core`, `policy-client`, `authorization`, `compliance`, `storage`, `events`; register / deposit / transfer / withdraw hook enforcement | ✅ done |
 | 2 | Delegated transfers, freeze administration with events, SAC passthrough, multi-token binding | ✅ done |
-| 3 | Security hardening, invariant tests, fuzzing → testnet integration, CLI | ✅ hardening suite (testnet + CLI next) |
+| 3 | Security hardening, invariants, fuzzing, testnet/live-ledger integration → CLI | ✅ hardening + live-ledger integration (CLI next) |
 | 4 | Advanced policy integration, policy versioning, deployment tooling, performance | |
 
 ## Documentation
@@ -141,6 +158,7 @@ cargo build --target wasm32v1-none --release -p compliance-hooks
 * `docs/privacy.md` — what the enforcement layer can and cannot observe
 * `docs/storage.md` — the small, auditable state surface
 * `docs/security.md` / `docs/threat-model.md` — posture and threat controls
+* `docs/deployment.md` / `docs/testnet.md` — deploy and operate the contract on a real ledger
 
 ## License
 

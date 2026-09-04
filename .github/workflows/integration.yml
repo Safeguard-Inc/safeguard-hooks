@@ -1,0 +1,36 @@
+name: integration
+
+# Runs the enforcement contract against a *real* Soroban ledger — the
+# containerized local network (`stellar container start local`) with the
+# stellar CLI signing actual transactions. This is the local form of the
+# testnet flow in docs/testnet.md and exercises deploy, the admin lifecycle,
+# freeze/unfreeze, policy rotation, and every hook revert code end to end.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  local-network:
+    name: live ledger integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain with wasm target
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add --toolchain stable wasm32v1-none
+
+      - name: Install stellar CLI
+        run: |
+          curl -sL -o /tmp/stellar-cli.tar.gz \
+            https://github.com/stellar/stellar-cli/releases/download/v28.0.0/stellar-cli-28.0.0-x86_64-unknown-linux-gnu.tar.gz
+          tar xzf /tmp/stellar-cli.tar.gz -C /tmp
+          echo "/tmp" >> "$GITHUB_PATH"
+
+      - name: Run live-ledger integration
+        run: bash scripts/integration-local.sh
+        env:
+          STELLAR: stellar
