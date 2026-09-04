@@ -85,3 +85,36 @@ entry points or an internal registry, and the hooks contract simply invokes
 the configured policy address. Keeping that seam at a single boolean call
 is what bounds enforcement cost at one cross-contract trip per screened
 party and keeps the two polyrepos from re-implementing each other.
+
+## Measuring the gate paths
+
+The call-count guarantees above are proven by the counting-policy tests;
+**wall-clock** cost per gate path is measured by the criterion suite in
+`crates/compliance/benches/gate_paths.rs`. Each benchmark first asserts the
+fixture really drives the named path (so a drift in gate order fails the
+benchmark instead of silently timing the wrong thing), then times it:
+
+```bash
+cargo bench -p safeguard-compliance          # full timings
+cargo bench -p safeguard-compliance -- --test  # fixture check, no timing
+```
+
+| Benchmark | Gate path timed | Cross-contract calls (same as the table above) |
+| --------- | --------------- | -------------------------------------------: |
+| `gate/deny_unconfigured` | no config → `InvalidConfiguration` | 0 |
+| `gate/deny_unbound_token` | unbound token → `UnboundToken` | 0 |
+| `gate/deny_frozen_first_party` | frozen sender → `AccountFrozen` | 0 |
+| `gate/deny_frozen_second_party` | frozen recipient after a clean first party | 1 |
+| `gate/deny_policy_second_party` | policy-denied recipient | 2 |
+| `gate/allow_register_single_party` | single-party allow | 1 |
+| `gate/allow_deposit_two_parties` | two-party allow | 2 |
+| `gate/allow_transfer_from_three_parties` | spender (policy-only) + `from` + `to` | 3 |
+| `gate/allow_withdraw_double_screen` | exiting account screened twice | 2 |
+| `gate/allow_full_gate_sac_passthrough` | freeze + policy + SAC per fund-holder | 4 |
+
+Two caveats. First, the numbers are produced on a host-emulated `Env` in
+`crates/compliance`, not on a ledger — they are for *relative* gate cost and
+regression watching (a change that adds a cross-contract call shows up as a
+step-change) rather than absolute budget. Second, the timings are
+machine-dependent; the machine-independent cost contract is the
+call-count table above, which the counting-policy tests pin.

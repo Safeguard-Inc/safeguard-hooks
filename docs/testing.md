@@ -18,6 +18,7 @@ How the enforcement layer is verified, and how to run the suites.
 | Security suite | `tests/security.rs` | token spoofing, bypass, cross-token contamination, config attacks |
 | Invariant suite | `tests/invariants.rs` | read-only evaluation, frozen-until-unfrozen, oracle parity, out-of-scope never allows |
 | Property suite | `tests/fuzz.rs` | seeded random admin/hook sequences vs an enforcement oracle |
+| Benchmarks | `crates/compliance/benches/gate_paths.rs` | criterion timings for every gate path in `docs/performance.md` — structural/freeze/policy/SAC denials and the allowed paths (incl. withdraw's double-screen and the full SAC gate) |
 | Live-ledger integration | `scripts/integration-local.sh` (CI: `.github/workflows/integration.yml`) | deploy + full lifecycle + revert codes on a real Soroban ledger |
 | Schema/fixture validation | `scripts/check-schema.sh` (CI) | every fixture/example/deployment record against `schemas/` |
 
@@ -28,7 +29,14 @@ cargo test --workspace        # all unit + contract suites
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all -- --check
 python3 scripts/check_schemas.py            # or: bash scripts/check-schema.sh
+cargo bench -p safeguard-compliance        # gate-path timings (criterion)
 ```
+
+The `clippy --all-targets` gate above compiles the bench target, so bench
+code is compile-checked in CI even though timings are not (numbers are
+machine-dependent). `cargo bench -p safeguard-compliance -- --test` runs
+every benchmark once without timing — a fast way to verify each fixture
+still drives the gate path it is named after.
 
 Contract wasm (needed for the live-ledger flow):
 

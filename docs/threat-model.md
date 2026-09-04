@@ -102,4 +102,7 @@ Spamming the hook surface or forcing repeated cross-contract calls.
   own fees. Cross-contract policy/SAC calls are bounded per operation by the
   number of named parties. Budget exhaustion of a *bound* token's operations is
   gated by the token's own flow.
-* **Follow-up:** cost accounting is part of the Phase 3 benchmark work.
+* **Measured:** cross-contract calls per path are pinned by the
+  counting-policy tests, and wall-clock cost per gate path is benchmarked in
+  `crates/compliance/benches/gate_paths.rs` (`cargo bench -p
+  safeguard-compliance`); see `docs/performance.md`.

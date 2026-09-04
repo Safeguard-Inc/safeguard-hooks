@@ -19,3 +19,8 @@ safeguard-policy-client = { path = "../policy-client" }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "gate_paths"
+harness = false
