@@ -1,0 +1,21 @@
+[package]
+name = "safeguard-compliance"
+description = "Enforcement evaluation pipeline for the Safeguard hooks contract: orders the token-scope, freeze, policy, and SAC gates and produces a fail-closed decision."
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+safeguard-hook-core = { path = "../hook-core" }
+safeguard-storage = { path = "../storage" }
+safeguard-authorization = { path = "../authorization" }
+safeguard-policy-client = { path = "../policy-client" }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }

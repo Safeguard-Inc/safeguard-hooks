@@ -6,6 +6,7 @@ members = [
     "crates/events",
     "crates/authorization",
     "crates/policy-client",
+    "crates/compliance",
 ]
 
 [workspace.package]

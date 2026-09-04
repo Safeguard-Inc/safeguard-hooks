@@ -1341,6 +1341,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "safeguard-compliance"
+version = "0.1.0"
+dependencies = [
+ "safeguard-authorization",
+ "safeguard-hook-core",
+ "safeguard-policy-client",
+ "safeguard-storage",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "safeguard-events"
 version = "0.1.0"
 dependencies = [
