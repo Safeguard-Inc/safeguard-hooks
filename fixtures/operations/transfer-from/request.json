@@ -1,0 +1,8 @@
+{
+  "operation": "transfer_from",
+  "token": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA",
+  "account": "GSSSSSSPENDERSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+  "spender": "GSSSSSSPENDERSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+  "counterparty": "GAAAAALICEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "description": "Delegated flow screened for the spender. The spender holds no funds: it passes the policy gate only, never freeze or SAC."
+}

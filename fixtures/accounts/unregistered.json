@@ -1,0 +1,9 @@
+{
+  "decision": "deny",
+  "reason": {
+    "code": 11,
+    "name": "registration_required",
+    "description": "The operation requires an account registered with the token; registration state lives at the token, which surfaces this before invoking the hook when applicable."
+  },
+  "description": "Account that never registered with the confidential token; reserved for deployments whose token enforces registration before the hook call."
+}

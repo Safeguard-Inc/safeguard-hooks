@@ -1,0 +1,4 @@
+{
+  "decision": "allow",
+  "description": "Sender and recipient policy-authorized and unfrozen: before_transfer allows."
+}

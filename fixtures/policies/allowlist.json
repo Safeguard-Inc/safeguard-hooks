@@ -1,0 +1,8 @@
+{
+  "name": "allowlist",
+  "description": "Only the listed accounts are authorized; everyone else is denied. Enforcement side: a denial arrives as policy_denied and the hooks contract reverts.",
+  "allowed_accounts": [
+    "GAAAAALICEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "GBBBBBBOBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+  ]
+}

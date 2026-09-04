@@ -1,0 +1,6 @@
+{
+  "operation": "merge",
+  "token": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA",
+  "account": "GAAAAALICEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "description": "Screening the merging account. Commitment validity is the token's concern (its proof model); the hook only gates the account."
+}

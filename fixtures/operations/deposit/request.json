@@ -1,0 +1,7 @@
+{
+  "operation": "deposit",
+  "token": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA",
+  "account": "GAAAAALICEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "counterparty": "GBBBBBBOBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+  "description": "Deposit request screened for the depositor (from). The depositor may be an address that never registered with the wrapper; the policy screens it like any other party."
+}

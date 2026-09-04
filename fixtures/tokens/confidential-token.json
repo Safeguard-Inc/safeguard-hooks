@@ -1,0 +1,6 @@
+{
+  "token": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA",
+  "sac": "CAAAAAUSDSACUNDERLYINGAAAAAAAAAAAAAAAAAA",
+  "kind": "confidential",
+  "description": "A confidential-token wrapper over an underlying SAC. SAC passthrough composes the SAC's authorized() view when enabled."
+}

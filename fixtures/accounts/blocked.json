@@ -1,0 +1,9 @@
+{
+  "decision": "deny",
+  "reason": {
+    "code": 3,
+    "name": "policy_denied",
+    "description": "The configured policy (allowlist/denylist/sanctions/jurisdiction) denied this account."
+  },
+  "description": "Policy-blocked account: the hooks contract reverts any operation naming it as a party."
+}

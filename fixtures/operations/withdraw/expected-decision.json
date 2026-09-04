@@ -1,0 +1,4 @@
+{
+  "decision": "allow",
+  "description": "Exiting account policy-authorized, unfrozen, and SAC-authorized (when passthrough is on): before_withdraw allows."
+}

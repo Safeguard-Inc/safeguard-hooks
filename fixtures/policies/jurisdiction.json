@@ -1,0 +1,6 @@
+{
+  "name": "jurisdiction",
+  "description": "Accounts whose jurisdiction is restricted are denied. Jurisdiction data and rule evaluation belong to safeguard-policy; the hooks contract surfaces the denial as RejectionReason::JurisdictionRestricted (code 7).",
+  "restricted_jurisdictions": ["XX"],
+  "note": "jurisdiction identifiers are defined by the safeguard-policy deployment, not by the enforcement layer"
+}

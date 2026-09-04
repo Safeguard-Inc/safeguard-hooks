@@ -1,0 +1,6 @@
+{
+  "token": "CAAAAARESTRICTEDTOKENAAAAAAAAAAAAAAAAAAA",
+  "sac": null,
+  "kind": "restricted",
+  "description": "A token bound with no SAC passthrough relationship; enforcement runs on freeze and policy gates only."
+}

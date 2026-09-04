@@ -1,0 +1,6 @@
+{
+  "token": "CAAAAAUSDSACUNDERLYINGAAAAAAAAAAAAAAAAAA",
+  "sac": null,
+  "kind": "sac",
+  "description": "A plain Stellar Asset Contract bound directly (no wrapper). It has no underlying SAC of its own."
+}

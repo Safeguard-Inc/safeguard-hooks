@@ -1,0 +1,6 @@
+{
+  "operation": "withdraw",
+  "token": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA",
+  "account": "GAAAAALICEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "description": "Withdrawal screened for the exiting account, which plays both the from and to roles. A frozen or blocked account cannot bypass enforcement by exiting the wrapper."
+}

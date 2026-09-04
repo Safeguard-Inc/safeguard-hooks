@@ -1,0 +1,7 @@
+{
+  "name": "denylist",
+  "description": "Every account is authorized except the listed ones. Mirrors the DenylistPolicy mock used across the test suites and the sample-policy demo.",
+  "blocked_accounts": [
+    "GEEEEEEEVEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+  ]
+}

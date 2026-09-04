@@ -1,0 +1,5 @@
+{
+  "name": "allow-all",
+  "description": "Every account is authorized on every bound token. The default policy of the local integration demo and of the compliance test fixtures.",
+  "blocked_accounts": []
+}

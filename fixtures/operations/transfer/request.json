@@ -1,0 +1,7 @@
+{
+  "operation": "transfer",
+  "token": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA",
+  "account": "GAAAAALICEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "counterparty": "GBBBBBBOBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+  "description": "Confidential transfer screened for the sender (from). Amounts stay private: the request carries addresses and the operation name only."
+}

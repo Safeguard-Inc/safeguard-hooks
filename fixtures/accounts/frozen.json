@@ -1,0 +1,6 @@
+{
+  "token": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA",
+  "account": "GCCCCCCAROLCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+  "frozen": true,
+  "description": "Admin-frozen on this token: cannot send, receive, deposit, merge, or withdraw. Unfreezing requires the admin."
+}

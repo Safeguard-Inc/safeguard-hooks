@@ -1,0 +1,6 @@
+{
+  "operation": "register",
+  "token": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA",
+  "account": "GAAAAALICEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "description": "Screening the registering account. Registration state itself lives at the token; the hook gates eligibility via policy and freeze."
+}

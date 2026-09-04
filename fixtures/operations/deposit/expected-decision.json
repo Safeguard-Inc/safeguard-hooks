@@ -1,0 +1,4 @@
+{
+  "decision": "allow",
+  "description": "Depositor and recipient are policy-authorized, unfrozen, and (with passthrough on) SAC-authorized: before_deposit allows."
+}

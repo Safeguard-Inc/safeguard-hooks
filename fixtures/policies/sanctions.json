@@ -1,0 +1,7 @@
+{
+  "name": "sanctions",
+  "description": "Sanctions-screened accounts are denied. Rule evaluation lives in safeguard-policy; the hooks contract surfaces the denial as RejectionReason::SanctionsBlocked (code 6) when the policy reports it.",
+  "sanctioned_accounts": [
+    "GEEEEEEEVEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+  ]
+}
