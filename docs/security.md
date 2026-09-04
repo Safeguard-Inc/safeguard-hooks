@@ -36,9 +36,11 @@ small set of rules that are enforced in code and asserted in tests:
 
 ## Current coverage
 
-Phases 1–2 ship the gate-level security tests — unbound token, unconfigured
-contract, blocked/frozen parties (including delegated flows), SAC failures,
-re-initialization, unauthorized admin, freeze event integrity, and multi-token
-isolation across the compliance and contract crates. The dedicated security
-suite — token spoofing, configuration attacks, bypass attempts, and the
-invariant suite — is part of the Phase 3 hardening roadmap.
+The gate-level security tests live in the compliance and contract crates
+(unbound token, unconfigured contract, blocked/frozen parties including
+delegated flows, SAC failures, freeze event integrity, multi-token
+isolation). The dedicated Phase 3 security suite (`tests/security.rs`)
+asserts the threat-model attacks through the full contract surface — token
+spoofing, bypass across every operation, cross-token contamination, and
+configuration attacks — with exact denial codes. The invariant suite
+(rejected operation = no state change) is the remaining hardening item.
