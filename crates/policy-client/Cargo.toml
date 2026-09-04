@@ -1,0 +1,18 @@
+[package]
+name = "safeguard-policy-client"
+description = "Typed, fail-closed cross-contract bridge from the Safeguard enforcement contract to the external safeguard-policy authorization contract."
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+safeguard-hook-core = { path = "../hook-core" }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
