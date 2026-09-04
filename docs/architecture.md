@@ -69,7 +69,7 @@ invokes the matching `before_*` hook here and applies nothing when the call
 fails. The token remains the gatekeeper of its own flows: signature checks for
 operation parties happen at the token, where balances and allowances live.
 
-Phases 1–3 of the roadmap are implemented: the six foundation crates
+Phases 1–4 of the roadmap are implemented: the six foundation crates
 and the `compliance-hooks` contract with `initialize`, `set_config`,
 `bind_token` / `unbind_token`, admin-gated `freeze` / `unfreeze` (emitting
 `AccountFrozen` / `AccountUnfrozen` events for the audit bridge), and hook
@@ -77,11 +77,19 @@ enforcement for all six confidential-token operations. Typed error codes
 mirror `hook-core` reasons end to end; multi-token binding is exercised
 through the full contract surface. Phase 3 added the explicit security,
 invariant, and deterministic property suites described in
-`docs/security.md` — 140 tests pass across the workspace.
+`docs/security.md` — 146 tests pass across the workspace.
 
-Phase 4 (in progress) opened with configuration versioning and
-state-transition events: `set_config` bumps a monotonic configuration
-version and emits `ComplianceConfigChanged`, and binding changes emit
-`TokenBound` / `TokenUnbound` — each only when state actually changes —
-closing the audit gap where policy rotations and scope changes left no
-record.
+Phase 4 closed the audit and operational gaps and pinned the performance
+model. Configuration versioning and state-transition events: `set_config`
+bumps a monotonic configuration version and emits
+`ComplianceConfigChanged`, and binding changes emit `TokenBound` /
+`TokenUnbound` — each only when state actually changes. Deployment
+tooling brings up a full deployment from the config in one command
+(`safeguard-hooks deploy`, `docs/cli.md`). The evaluation pipeline now
+short-circuits — the chain stops at the first failing party, so denials
+never pay a later party's cross-contract call — with the cost model and
+guarantees recorded in `docs/performance.md`. Advanced policy integration
+(rule versions, multi-policy routing, richer rule sets) is closed as a
+documented boundary: it belongs to `safeguard-policy` behind the single
+`is_authorized` seam, so the enforcement layer stays one boolean call per
+screened party.

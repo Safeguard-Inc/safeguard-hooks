@@ -59,9 +59,13 @@ Order is deliberate:
 3. **Per party**: freeze → policy → SAC.
 
 Cheap, local gates (freeze is a storage read) run before expensive
-cross-contract gates (policy, SAC). When multiple parties or gates fail, the
-*first* failure in canonical order is reported, so the top of the rejection
-chain is deterministic.
+cross-contract gates (policy, SAC). The pipeline **short-circuits**: the
+first failing gate ends the evaluation, so no later party is screened and a
+denial never pays a subsequent party's cross-contract call. When multiple
+parties or gates would fail, the *first* failure in canonical order is
+reported, so the top of the rejection chain is deterministic. The counting-
+policy tests in `crates/compliance` and the cost table in
+`docs/performance.md` pin these properties.
 
 ## Policy and SAC gates
 
