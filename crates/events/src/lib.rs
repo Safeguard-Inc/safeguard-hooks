@@ -32,6 +32,10 @@
 //! private financial data. Topics and payloads name addresses, tokens,
 //! policies, and booleans only.
 
+#![no_std]
+#[cfg(test)]
+extern crate std;
+
 use soroban_sdk::{contractevent, Address, Env};
 
 // ################## FREEZE STATE ##################

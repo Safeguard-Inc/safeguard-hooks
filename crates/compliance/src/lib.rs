@@ -56,6 +56,10 @@
 //! lives in `contracts/compliance-hooks`; this crate is deliberately free of
 //! contract ceremony so the ordering logic is testable on its own.
 
+#![no_std]
+#[cfg(test)]
+extern crate std;
+
 pub mod evaluator;
 pub mod sac;
 

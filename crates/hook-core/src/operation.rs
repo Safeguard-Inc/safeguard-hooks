@@ -79,6 +79,7 @@ impl Operation {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::vec::Vec;
 
     #[test]
     fn operation_names_are_stable_and_lowercase() {

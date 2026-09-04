@@ -66,6 +66,10 @@
 //! the transaction with the host authorization error, which `docs/errors.md`
 //! maps to `unauthorized_caller`.
 
+#![no_std]
+#[cfg(test)]
+extern crate std;
+
 pub mod admin;
 pub mod token;
 

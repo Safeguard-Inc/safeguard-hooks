@@ -27,6 +27,10 @@
 //! variant of the single [`DataKey`] enum, every write function documents
 //! exactly what it changes and what it deliberately does not check.
 
+#![no_std]
+#[cfg(test)]
+extern crate std;
+
 mod admin;
 mod bindings;
 mod config;

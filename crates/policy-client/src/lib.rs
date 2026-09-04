@@ -60,6 +60,10 @@
 //! instead of leaking an arbitrary cross-contract error code into the audit
 //! trail.
 
+#![no_std]
+#[cfg(test)]
+extern crate std;
+
 pub mod client;
 
 pub use client::{is_authorized, PolicyClient};

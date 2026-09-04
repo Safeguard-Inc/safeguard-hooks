@@ -100,6 +100,7 @@ impl RejectionReason {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::vec::Vec;
 
     #[test]
     fn names_are_stable_and_unique() {

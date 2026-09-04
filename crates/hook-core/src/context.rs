@@ -61,6 +61,7 @@ impl OperationContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::vec::Vec;
 
     #[test]
     fn hook_context_expands_to_one_context_per_party() {
@@ -69,11 +70,11 @@ mod tests {
         assert_eq!(expanded.len(), 3);
         assert_eq!(
             expanded,
-            vec![
+            Vec::from([
                 OperationContext::new(Operation::TransferFrom, PartyRole::Spender),
                 OperationContext::new(Operation::TransferFrom, PartyRole::From),
                 OperationContext::new(Operation::TransferFrom, PartyRole::To),
-            ]
+            ])
         );
     }
 

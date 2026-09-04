@@ -38,6 +38,10 @@
 //! `safeguard-authorization`; the *ordering* of gates lives in
 //! `safeguard-compliance`. This crate stays the shared, dependency-free core.
 
+#![no_std]
+#[cfg(test)]
+extern crate std;
+
 pub mod context;
 pub mod decision;
 pub mod operation;
