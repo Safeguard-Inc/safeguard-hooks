@@ -121,7 +121,14 @@ configuration the admin writes (see the invariants in `docs/security.md`).
 
 ## Automating
 
-`scripts/integration-local.sh` runs this entire lifecycle against the
-containerized local network with assertions on every revert code — a
-zero-credential rehearsal of the testnet flow, and the same commands with
-`--network testnet` once accounts are funded there.
+* **One-command bring-up (CLI).** Once the wasm artifacts are built,
+  `safeguard-hooks deploy --hooks-wasm <path> [--sample-policy-wasm <path>] [--save]`
+  (from `deployments/<env>/configuration.json`) deploys the hooks contract,
+  optionally deploys/reuses a policy, and runs `initialize` → `set_config` →
+  `bind_token` for every configured token; `--save` records the freshly
+  minted ids back into the config (`docs/cli.md`).
+* **Live-ledger rehearsal (script).** `scripts/integration-local.sh` runs
+  the entire lifecycle against the containerized local network with
+  assertions on every revert code — a zero-credential rehearsal of the
+  testnet flow, and the same commands with `--network testnet` once
+  accounts are funded there.

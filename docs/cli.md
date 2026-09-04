@@ -34,6 +34,7 @@ tool's state.
 
 | Command | What it does | Signs |
 | ------- | ------------ | ----- |
+| `deploy --hooks-wasm <path> [--sample-policy-wasm <path>] [--policy-blocked <G…>] [--policy-id <id>] [--no-policy] [--save]` | One-command bring-up: deploy the hooks contract (and optionally a sample policy), then `initialize` → `set_config` → bind every configured token. `--save` records the fresh ids in the config | admin |
 | `init` | Runs the one-shot `initialize(admin)`; reverts `#12` if already done | admin |
 | `configure --policy <id>\|--no-policy [--sac-passthrough <bool>]` | Writes the compliance configuration (policy gate + SAC flag) | admin |
 | `bind --token <alias\|id> [--sac <id>]` | Admits a token into enforcement scope | admin |
@@ -62,8 +63,14 @@ tool's state.
 ## Examples
 
 ```bash
-# Deploy and configure the contract first (docs/deployment.md or the
-# integration script), then record the wiring in deployments/<env>/:
+# Bring a fresh deployment up from the deployments config (deployment
+# tooling) and record the minted ids back into it:
+safeguard-hooks deploy \
+  --hooks-wasm target/wasm32v1-none/release/compliance_hooks.wasm \
+  --sample-policy-wasm target/wasm32v1-none/release/sample_policy.wasm \
+  --policy-blocked "$G_BLOCKED" --save
+
+# Then operate it:
 safeguard-hooks show                              # what is configured?
 safeguard-hooks configure --policy "$POLICY"      # point at a new policy
 safeguard-hooks bind --token usd                  # admit the usd token
@@ -71,6 +78,11 @@ safeguard-hooks freeze --token usd --account "$G" # freeze an account
 safeguard-hooks show --token usd --account "$G"   # bound? frozen?
 safeguard-hooks unfreeze --token usd --account "$G"
 ```
+
+`deploy` policy resolution: `--policy-id` reuses a deployed policy,
+`--sample-policy-wasm` deploys a fresh one (denying `--policy-blocked` when
+given), `--no-policy` disables the gate, and with none of those the config's
+recorded policy is reused.
 
 ## Boundary
 

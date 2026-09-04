@@ -118,12 +118,14 @@ in CI (`.github/workflows/integration.yml`). The `safeguard-hooks`
 operator CLI (`docs/cli.md`) inspects and configures the on-chain layer
 through the stellar CLI, decoding revers into the stable rejection names.
 
-Phase 4 has begun with **configuration versioning and state-transition
-events**: every real `set_config` bumps a monotonic `config_version` and
-emits `ComplianceConfigChanged`, and `bind_token`/`unbind_token` now emit
-`TokenBound`/`TokenUnbound` only on actual binding changes — the audit
-gap where policy rotations and scope changes previously left no record.
-All writes are no-ops when nothing changes, verified on the live ledger.
+Phase 4 is in progress. Delivered so far: **configuration versioning and
+state-transition events** (every real `set_config` bumps a monotonic
+`config_version` and emits `ComplianceConfigChanged`; `bind_token` /
+`unbind_token` emit `TokenBound` / `TokenUnbound` only on actual binding
+changes — verified live), and **deployment tooling** (`safeguard-hooks
+deploy`: one-command bring-up from the deployment config that deploys the
+hooks contract and an optional policy, runs the full lifecycle, binds
+every configured token, and records the fresh ids back with `--save`).
 
 ## Building and testing
 
@@ -156,7 +158,7 @@ scripts/integration-local.sh
 | 1 | `hook-core`, `policy-client`, `authorization`, `compliance`, `storage`, `events`; register / deposit / transfer / withdraw hook enforcement | ✅ done |
 | 2 | Delegated transfers, freeze administration with events, SAC passthrough, multi-token binding | ✅ done |
 | 3 | Security hardening, invariants, fuzzing, live-ledger integration, operator CLI | ✅ done |
-| 4 | Advanced policy integration, policy versioning, deployment tooling, performance | 🚧 config versioning + transition events (this batch) |
+| 4 | Advanced policy integration, policy versioning, deployment tooling, performance | 🚧 config versioning + transition events ✅; deploy tooling ✅; advanced policy integration + performance next |
 
 ## Documentation
 
