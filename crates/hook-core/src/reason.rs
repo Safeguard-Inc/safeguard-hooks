@@ -43,6 +43,23 @@ pub enum RejectionReason {
     RegistrationRequired,
 }
 
+/// Every rejection reason in code order. Tooling (the operator CLI, the
+/// audit polyrepo, incident tooling) iterates this to decode contract error
+/// codes without duplicating the mapping.
+pub const ALL: [RejectionReason; 11] = [
+    RejectionReason::UnauthorizedCaller,
+    RejectionReason::UnboundToken,
+    RejectionReason::PolicyDenied,
+    RejectionReason::AccountFrozen,
+    RejectionReason::SpenderNotAuthorized,
+    RejectionReason::SanctionsBlocked,
+    RejectionReason::JurisdictionRestricted,
+    RejectionReason::SacAuthorizationFailed,
+    RejectionReason::InvalidConfiguration,
+    RejectionReason::PolicyUnavailable,
+    RejectionReason::RegistrationRequired,
+];
+
 impl RejectionReason {
     /// Stable snake_case identifier. Public contract — do not rename.
     pub const fn name(self) -> &'static str {
@@ -80,20 +97,13 @@ impl RejectionReason {
 
     /// Parse back from the stable name (used by fixtures and tooling).
     pub fn from_name(name: &str) -> Option<Self> {
-        Some(match name {
-            "unauthorized_caller" => RejectionReason::UnauthorizedCaller,
-            "unbound_token" => RejectionReason::UnboundToken,
-            "policy_denied" => RejectionReason::PolicyDenied,
-            "account_frozen" => RejectionReason::AccountFrozen,
-            "spender_not_authorized" => RejectionReason::SpenderNotAuthorized,
-            "sanctions_blocked" => RejectionReason::SanctionsBlocked,
-            "jurisdiction_restricted" => RejectionReason::JurisdictionRestricted,
-            "sac_authorization_failed" => RejectionReason::SacAuthorizationFailed,
-            "invalid_configuration" => RejectionReason::InvalidConfiguration,
-            "policy_unavailable" => RejectionReason::PolicyUnavailable,
-            "registration_required" => RejectionReason::RegistrationRequired,
-            _ => return None,
-        })
+        ALL.iter().copied().find(|reason| reason.name() == name)
+    }
+
+    /// Parse back from the stable numeric code (contract error codes mirror
+    /// these 1–11; used by the operator CLI to decode `Error(Contract, #N)`).
+    pub fn from_code(code: u32) -> Option<Self> {
+        ALL.iter().copied().find(|reason| reason.code() == code)
     }
 }
 
@@ -137,5 +147,20 @@ mod tests {
             assert_eq!(RejectionReason::from_name(r.name()), Some(r));
         }
         assert_eq!(RejectionReason::from_name("nonsense"), None);
+    }
+
+    #[test]
+    fn codes_round_trip_and_all_are_covered() {
+        assert_eq!(ALL.len(), 11);
+        for reason in ALL {
+            assert_eq!(RejectionReason::from_code(reason.code()), Some(reason));
+        }
+        // 1..=11 are exactly the reason codes; anything else is not a
+        // rejection reason (the contract adds its own codes above 11).
+        for code in 1..=11 {
+            assert!(RejectionReason::from_code(code).is_some());
+        }
+        assert_eq!(RejectionReason::from_code(0), None);
+        assert_eq!(RejectionReason::from_code(12), None);
     }
 }
