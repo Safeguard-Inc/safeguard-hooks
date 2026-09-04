@@ -72,48 +72,69 @@ production financial infrastructure.
 
 ```text
 contracts/
-  compliance-hooks/    Soroban enforcement contract (thin entry surface)
+  compliance-hooks/    Soroban enforcement contract (thin entry surface) — ✅ phase 1
 crates/
-  hook-core/           Operation/context/decision domain model
-  policy-client/       On-chain client for the safeguard-policy contract
-  authorization/       Admin authorization primitives
-  compliance/          Gate evaluation: freeze, policy, SAC passthrough
-  storage/             Contract state keys and persistence helpers
-  events/              Structured contract events (audit bridge)
+  hook-core/           Environment-free domain model (operations, parties, decisions) — ✅
+  policy-client/       Typed fail-closed bridge to the safeguard-policy contract — ✅
+  authorization/       Admin + token enforcement-scope authority gates — ✅
+  compliance/          Gate-ordering pipeline: freeze → policy → SAC — ✅
+  storage/             Contract state keys and persistence helpers — ✅
+  events/              Structured contract events (audit bridge) — ✅
 interfaces/            Trait/interface definitions shared across the Safeguard repos
 schemas/               JSON schemas for configs, requests, decisions
 fixtures/              Sample policies, accounts, tokens, operations
 tests/                 Unit, hook, policy, freezing, sac, security, invariant tests
-docs/                  Architecture and operational documentation
-cli/                   Operator CLI (inspect/configure the on-chain enforcement layer)
+docs/                  Architecture and operational documentation — ✅ core set
+audit/ cli/ …          Follow-on batches (Phase 2–4)
 ```
+
+## Status: Phase 1 complete
+
+Phase 1 (the foundation) is implemented, tested, and pushed: the six
+supporting crates and the deployable `compliance-hooks` contract with
+`register` / `deposit` / `transfer` / `withdraw` hook enforcement. The
+contract compiles to WebAssembly (`wasm32v1-none`) and 77 unit tests pass
+across the workspace.
+
+Phase 2 (delegated transfers, freeze administration with events, SAC
+passthrough wiring at the contract surface, multi-token binding), Phase 3
+(security hardening, invariants, fuzzing, testnet integration, CLI) and
+Phase 4 follow as separate batches.
 
 ## Building and testing
 
 ```bash
-cargo build                 # native (tests) build
-cargo test --workspace      # full unit + hook + integration test suite
-cargo clippy --workspace -- -D warnings
+cargo build                 # native (host test) build
+cargo test --workspace      # full unit + contract test suite
+cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all -- --check
 ```
 
-Contracts compile to WebAssembly for deployment:
+Contracts compile to WebAssembly for deployment (the `wasm32v1-none`
+target is pinned in `rust-toolchain.toml`):
 
 ```bash
-cargo build --target wasm32-unknown-unknown --release -p safeguard-compliance-hooks
+cargo build --target wasm32v1-none --release -p compliance-hooks
 ```
 
 ## Phase roadmap
 
-| Phase | Scope |
-| ----- | ----- |
-| 1 | `hook-core`, `policy-client`, `authorization`, `compliance`, `storage`, `events` crates; register / deposit / transfer / withdraw hook enforcement |
-| 2 | Delegated transfers, freeze administration, SAC passthrough, multi-token binding |
-| 3 | Security hardening, invariant tests, fuzzing, testnet integration, CLI |
-| 4 | Advanced policy integration, policy versioning, deployment tooling, performance |
+| Phase | Scope | Status |
+| ----- | ----- | ------ |
+| 1 | `hook-core`, `policy-client`, `authorization`, `compliance`, `storage`, `events`; register / deposit / transfer / withdraw hook enforcement | ✅ done |
+| 2 | Delegated transfers, freeze administration, SAC passthrough, multi-token binding | next |
+| 3 | Security hardening, invariant tests, fuzzing, testnet integration, CLI | |
+| 4 | Advanced policy integration, policy versioning, deployment tooling, performance | |
 
-See `docs/architecture.md` and `docs/enforcement-model.md` for the design,
-and `docs/security.md` / `docs/threat-model.md` for the security posture.
+## Documentation
+
+* `docs/architecture.md` — DEFINE → ENFORCE → VERIFY and this repo's shape
+* `docs/enforcement-model.md` — when an operation is allowed or reverted
+* `docs/authorization.md` — the caller model and authority boundaries
+* `docs/errors.md` — rejection reason codes and their mapping
+* `docs/privacy.md` — what the enforcement layer can and cannot observe
+* `docs/storage.md` — the small, auditable state surface
+* `docs/security.md` / `docs/threat-model.md` — posture and threat controls
 
 ## License
 
