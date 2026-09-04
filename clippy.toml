@@ -1,0 +1,2 @@
+# Workspace-wide clippy defaults.
+# Enforced lints live in CI (`scripts/check.sh`) so local iterations stay fast.
