@@ -118,3 +118,61 @@ regression watching (a change that adds a cross-contract call shows up as a
 step-change) rather than absolute budget. Second, the timings are
 machine-dependent; the machine-independent cost contract is the
 call-count table above, which the counting-policy tests pin.
+
+## Measured on-chain gas (Testnet, 2026-09-08)
+
+The wall-clock benches above are for *relative* gate cost. The number a
+token holder actually pays is the **fee charged** for a real transaction
+(stroops; 1 XLM = 10,000,000 stroops) — it includes CPU instructions,
+ledger footprint, storage rent and tx size. Measured with
+`scripts/bench-gas.sh` against the deployment recorded in
+`deployments/testnet/configuration.json` (repeat runs vary by a few
+percent):
+
+| Function | Stroops | XLM |
+| -------- | ------: | ---: |
+| `initialized` / `config` (reads) | 3,144 / 3,585 | ~0.00034 |
+| `token_is_bound` / `is_frozen` (reads) | 3,930 / 4,230 | ~0.00041 |
+| `before_register` (1 party, 1 policy call) | 8,866 | 0.000887 |
+| `before_deposit` (2 parties, 2 policy calls) | 11,480 | 0.001148 |
+| `before_transfer` (2 parties, 2 policy calls) | 11,480 | 0.001148 |
+| `before_withdraw` (double screen, 2 policy calls) | 9,470 | 0.000947 |
+| `freeze` (write, incl. new-entry rent) | 29,141 | 0.002914 |
+| `unfreeze` (write) | 8,991 | 0.000899 |
+
+So a compliant `before_deposit` — the most expensive regular operation —
+costs **≈ 0.0011 XLM (~0.0004 USD)** on Testnet. Denied paths are strictly
+cheaper (the short-circuit guarantees above: they stop at the first failing
+local gate and never pay the cross-contract policy call for the party they
+stop).
+
+### 2026-09-08 optimization: release profile
+
+The workspace previously built wasm with cargo's default release profile.
+The contract's release profile now mirrors `safeguard-policy`'s:
+`opt-level = "z"`, `lto = true`, `codegen-units = 1`, `panic = "abort"`,
+`strip = "symbols"`, `overflow-checks = true` (fail-closed arithmetic stays
+on — it is a correctness guarantee, not a cost to trade away). Effect:
+
+| Metric | Before | After |
+| ------ | -----: | ----: |
+| `compliance_hooks.wasm` size | 27,138 B | 25,687 B (−5%) |
+| `sample_policy.wasm` size | 3,166 B | 2,485 B (−21%) |
+| `before_deposit` / `before_transfer` | 12,779 | 11,480 (**−10%**) |
+| `before_withdraw` | 10,768 | 9,470 (**−12%**) |
+| `before_register` | 10,039 | 8,866 (**−12%**) |
+| state reads (`initialized`, `config`, …) | ~3–4k | unchanged (noise) |
+
+The cross-contract policy call remains the dominant term in the allowed
+paths — that is the architecture's cost, and it also dropped because the
+policy side optimized its own `is_authorized` (see safeguard-policy
+`docs/gas.md`): the two optimizations compound per screened party.
+
+### Caveats
+
+* Fees drift with network pricing (`stellar network settings --network
+  <net>`); re-run `bash scripts/bench-gas.sh testnet` for current numbers.
+* Storage **rent** is charged on writes and TTL extension; a read that
+  happens to bump an entry's TTL shows a one-off spike (observed once:
+  `token_is_bound` at 57,587 stroops vs. 3,930 steady-state). The stable
+  numbers above are steady-state.

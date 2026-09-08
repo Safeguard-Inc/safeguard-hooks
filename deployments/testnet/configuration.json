@@ -2,9 +2,9 @@
   "network": "testnet",
   "rpc_url": "https://soroban-testnet.stellar.org",
   "network_passphrase": "Test SDF Network ; September 2015",
-  "hooks_contract_id": "CCZXWOHASCFM53BBLKWOYDAABKVB2B5EWWQN2DRHVCGJA3RGI5OWXX5C",
+  "hooks_contract_id": "CAZZCML33QERACJ2K3QLENYNXEEPYQQIGN7SPXPYQV4DWZYB44JABW3Q",
   "policy": {
-    "contract_id": "CCGXR4EOTFFWJA2SOZOAKUWK3DVDBWU2HR5ZSM54PGJ2KRTEFIRK2OV3",
+    "contract_id": "CCOEMBBUNF3WO24YCH637G2TKCFGBN6QMUSUB4ODPLPGF4BUS64WPR47",
     "note": "safeguard-policy deployment (DEFINE polyrepo) wired to the documented is_authorized(account, token) seam; policy id 'enforcement-default' v1 active — a rule set decidable from on-chain state only."
   },
   "sac_passthrough": false,
@@ -19,5 +19,5 @@
       "sac_contract_id": null
     }
   ],
-  "description": "Live Testnet deployment verified end-to-end on 2026-09-08: DEFINE (safeguard-policy) + ENFORCE (compliance-hooks) wired together. Verified live: compliant operations allowed through the real policy contract; frozen parties revert Error(Contract, #4); a policy-denied party (suspended identity record) reverts #3; unbound tokens revert #2; the real getEvents stream parses cleanly through safeguard-audit's verified wire model. The admin secret key lives in the SAFEGUARD_ADMIN_SK env var only — never in this file. Confidential Tokens on Stellar are a developer preview; treat this deployment as rehearsal, not production."
+  "description": "Live Testnet deployment verified end-to-end on 2026-09-08: DEFINE (safeguard-policy) + ENFORCE (compliance-hooks) wired together. Verified live: compliant operations allowed through the real policy contract; frozen parties revert Error(Contract, #4); a policy-denied party (suspended identity record) reverts #3; unbound tokens revert #2; the real getEvents stream parses cleanly through safeguard-audit's verified wire model. Redeployed 2026-09-08 with the gas-optimized wasm (release profile: opt-z, LTO, codegen-units 1, panic=abort; docs/performance.md): enforcement gates cost ~10-12% less per operation. The admin secret key lives in the SAFEGUARD_ADMIN_SK env var only — never in this file. Confidential Tokens on Stellar are a developer preview; treat this deployment as rehearsal, not production."
 }

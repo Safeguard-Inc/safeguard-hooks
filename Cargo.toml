@@ -12,6 +12,24 @@ members = [
     "cli",
 ]
 
+# Soroban contracts run inside the VM on-chain, where every instruction is
+# metered: the release profile is the gas budget. opt-level "z" and LTO keep
+# the wasm small and fast (smaller code = fewer bytes fetched from the ledger
+# and fewer instructions executed); panic=abort removes the unwind machinery
+# no contract ever uses; strip and debug=0 drop symbols that only bloat the
+# artifact. overflow-checks stay on — fail-closed arithmetic is a correctness
+# guarantee here, not a cost to trade away. Mirrors safeguard-policy's
+# profile so the two polyrepos ship comparable economics.
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
+
 [workspace.package]
 version = "0.1.0"
 description = "Enforcement layer for the Safeguard compliance stack on Stellar Confidential Tokens: a fail-closed Soroban compliance-hooks contract with freeze administration and SAC passthrough."
