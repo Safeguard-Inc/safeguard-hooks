@@ -199,4 +199,4 @@ scripts/integration-local.sh
 
 ## License
 
-MIT
+Apache-2.0
