@@ -18,6 +18,7 @@
 use soroban_sdk::{contracttype, Address, Env};
 
 use crate::keys::DataKey;
+use crate::touch;
 
 /// What the enforcement contract knows about a bound token.
 #[contracttype]
@@ -29,9 +30,15 @@ pub struct TokenBinding {
 }
 
 /// Returns the binding for `token`, if the token is bound.
+///
+/// A live binding is renewed on read, exactly like a live freeze flag: a
+/// bound token must not silently fall out of enforcement scope because its
+/// ledger entry expired while idle. Reads keep long-lived bindings alive
+/// (see [`crate::touch`]).
 pub fn token_binding(e: &Env, token: &Address) -> Option<TokenBinding> {
     let key = DataKey::TokenBinding(token.clone());
     if e.storage().persistent().has(&key) {
+        touch(e, &key);
         e.storage().persistent().get(&key)
     } else {
         None
@@ -91,6 +98,40 @@ mod tests {
                 token_binding(&e, &token),
                 Some(TokenBinding { sac: Some(sac) })
             );
+        });
+    }
+
+    #[test]
+    fn reads_renew_the_binding_ttl() {
+        use crate::{TTL_EXTEND_TO, TTL_THRESHOLD};
+        use soroban_sdk::testutils::{storage::Persistent as _, Ledger as _};
+
+        let (e, contract) = host_env();
+        let token = account(&e);
+        let key = DataKey::TokenBinding(token.clone());
+
+        e.as_contract(&contract, || {
+            bind_token(&e, &token, None);
+            assert!(is_token_bound(&e, &token));
+
+            // Age the entry: jump most of the way to its expiry so its
+            // remaining TTL drops below the renewal threshold. Without the
+            // read-time renewal, the binding would silently expire here and
+            // the token would fall out of enforcement scope.
+            e.ledger()
+                .set_sequence_number(e.ledger().sequence() + 6_000_000);
+            assert!(e.storage().persistent().get_ttl(&key) < TTL_THRESHOLD);
+
+            // A read must keep the entry alive, not let it expire silently.
+            let binding = token_binding(&e, &token);
+            assert!(binding.is_some());
+            assert!(
+                e.storage().persistent().get_ttl(&key) >= TTL_EXTEND_TO,
+                "reading a binding must renew its TTL"
+            );
+
+            // …and the token is still in scope afterwards.
+            assert!(is_token_bound(&e, &token));
         });
     }
 
