@@ -8,10 +8,10 @@ carries the transition.
 ## The emission discipline
 
 * **Events describe state transitions, not operations.** Only events that
-  mark an actual on-chain change are emitted: freezing, unfreezing,
-  binding, unbinding, and configuration rewrites. Idempotent repeats (e.g.
-  freezing an already-frozen account, rewriting the identical config) emit
-  nothing.
+  mark an actual on-chain change are emitted: initialization, freezing,
+  unfreezing, binding, unbinding, and configuration rewrites. Idempotent
+  repeats (e.g. freezing an already-frozen account, rewriting the
+  identical config) emit nothing.
 * **Per-operation approvals are never emitted.** Any contract can invoke
   the hook surface (Soroban has no caller introspection), so an approval
   record would be spoofable audit poison; and a *denial* reverts, which
@@ -23,6 +23,7 @@ carries the transition.
 
 | Event | Topic | Payload | Emitted by |
 | ----- | ----- | ------- | ---------- |
+| `Initialized` | `Initialized` | `admin` | `initialize`, exactly once |
 | `AccountFrozen` | `AccountFrozen` | `token`, `account` | admin `freeze` on a real change |
 | `AccountUnfrozen` | `AccountUnfrozen` | `token`, `account` | admin `unfreeze` on a real change |
 | `TokenBound` | `TokenBound` | `token` | admin `bind_token` on a real change |

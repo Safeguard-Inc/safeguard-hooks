@@ -1,13 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ComplianceEvent",
-  "description": "Structured event emitted by the hooks contract for the audit bridge. Only state-transition events exist (freeze/unfreeze, bind/unbind, config changes); per-operation approvals are never emitted because any contract can invoke the hook surface and reverts discard events. Events carry addresses and booleans only — never amounts or private financial data.",
+  "description": "Structured event emitted by the hooks contract for the audit bridge. Only state-transition events exist (initialization, freeze/unfreeze, bind/unbind, config changes); per-operation approvals are never emitted because any contract can invoke the hook surface and reverts discard events. Events carry addresses and booleans only — never amounts or private financial data.",
   "type": "object",
-  "required": ["type", "token"],
+  "required": ["type"],
   "properties": {
     "type": {
       "type": "string",
       "enum": [
+        "initialized",
         "account_frozen",
         "account_unfrozen",
         "token_bound",
@@ -15,9 +16,13 @@
         "compliance_config_changed"
       ]
     },
+    "admin": {
+      "$ref": "#/$defs/address",
+      "description": "The administrative authority recorded at initialization (initialized only)."
+    },
     "token": {
       "$ref": "#/$defs/address",
-      "description": "The token the transition concerns."
+      "description": "The token the transition concerns (all kinds except initialized)."
     },
     "account": {
       "$ref": "#/$defs/address",
