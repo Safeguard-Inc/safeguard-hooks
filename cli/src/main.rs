@@ -620,7 +620,16 @@ mod tests {
                 { "alias": "usd", "contract_id": "G…USD", "sac_contract_id": null }
             ]
         }"#;
-        let dir = std::env::temp_dir().join(format!("shcfg-{}", std::process::id()));
+        // Tests run in parallel in one process, so the scratch dir must be
+        // unique per call: a shared `shcfg-<pid>` path raced (one test's
+        // truncate-then-write was observed as an empty file by another's
+        // read, surfacing as "EOF while parsing a value").
+        static COUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let dir = std::env::temp_dir().join(format!(
+            "shcfg-{}-{}",
+            std::process::id(),
+            COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        ));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("configuration.json");
         std::fs::write(&path, raw).unwrap();
