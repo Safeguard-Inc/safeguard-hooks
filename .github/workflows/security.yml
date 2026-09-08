@@ -29,16 +29,16 @@ jobs:
           rustup component add --toolchain stable clippy
 
       - name: Clippy (warnings denied)
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
 
       - name: Security suite
-        run: cargo test -p compliance-hooks --test security
+        run: cargo test --locked -p compliance-hooks --test security
 
       - name: Invariant suite
-        run: cargo test -p compliance-hooks --test invariants
+        run: cargo test --locked -p compliance-hooks --test invariants
 
       - name: Property suite
-        run: cargo test -p compliance-hooks --test fuzz
+        run: cargo test --locked -p compliance-hooks --test fuzz
 
       - name: Schema and fixture validation
         run: |

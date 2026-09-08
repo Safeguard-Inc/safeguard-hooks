@@ -24,7 +24,7 @@ jobs:
 
       - name: Build contracts (release)
         run: |
-          cargo build --target wasm32v1-none --release -p compliance-hooks -p sample-policy
+          cargo build --locked --target wasm32v1-none --release -p compliance-hooks -p sample-policy
           mkdir -p dist
           cp target/wasm32v1-none/release/compliance_hooks.wasm dist/compliance-hooks.wasm
           cp target/wasm32v1-none/release/sample_policy.wasm dist/sample-policy.wasm

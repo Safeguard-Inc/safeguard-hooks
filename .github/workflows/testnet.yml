@@ -27,7 +27,7 @@ jobs:
           rustup target add --toolchain stable wasm32v1-none
 
       - name: Build contracts
-        run: cargo build --target wasm32v1-none --release -p compliance-hooks -p sample-policy
+        run: cargo build --locked --target wasm32v1-none --release -p compliance-hooks -p sample-policy
 
       - name: Validate testnet deployment record
         run: |
