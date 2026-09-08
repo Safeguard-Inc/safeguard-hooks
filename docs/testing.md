@@ -8,6 +8,8 @@ How the enforcement layer is verified, and how to run the suites.
 | ---- | ----- | --- |
 | Hook unit tests | `contracts/compliance-hooks` unit tests | every `before_*` gate path, exact error codes |
 | Crate unit tests | each crate's `#[cfg(test)]` modules | decisions, storage, events, reason codes, gate ordering |
+| Event surface | `crates/events` + contract tests | exact `to_xdr` events incl. `Initialized`; idempotent writes emit nothing |
+| Storage TTL lifetime | `crates/storage` tests | reads renew freeze and binding TTLs; entries cannot silently expire |
 | Authorization | `contracts/compliance-hooks` + `crates/authorization` | admin gate, double-init, freeze/bind scope gates |
 | Policy integration | mock deny-list/allow-all policies across suites | `is_authorized` consumption, `PolicyDenied`, `PolicyUnavailable` |
 | SAC passthrough | `crates/compliance` + contract tests | authorized/denied/unreachable SAC |
