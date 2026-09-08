@@ -9,6 +9,25 @@ single-improvement commits.
 
 ## [Unreleased]
 
+### Added — hardening and governance
+
+* **Binding TTL renewal** — `token_binding()` reads now renew the TTL of a
+  live binding (mirroring freeze flags), so a bound token can never
+  silently fall out of enforcement scope while idle; regression test ages
+  the entry past the renewal threshold.
+* **`Initialized` event + `admin()` read** — `initialize` emits an
+  `Initialized` event naming the recorded authority; the contract exposes
+  `admin()`; the CLI's `show` prints it; documented in `docs/events.md`,
+  `interfaces/events/events.md`, and `schemas/compliance-event.schema.json`.
+* **Supply-chain gate** — `deny.toml` (cargo-deny: advisories, licenses,
+  sources) enforced in the security workflow, plus a weekly scheduled
+  dependency sweep and dependabot for Cargo + GitHub Actions.
+* **CI hardening** — all GitHub Actions pinned to commit SHAs; every cargo
+  invocation builds against the committed lockfile (`--locked`).
+* **Governance and metadata** — CODEOWNERS; workspace `description`,
+  `documentation`, and `rust-version`; relicensed to Apache-2.0 to match
+  the polyrepo family.
+
 ### Added — Phase 4 completion (documentation and reference surface)
 
 * `schemas/` — eight JSON Schemas for the wire surfaces (compliance config,
