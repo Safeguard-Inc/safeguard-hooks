@@ -41,7 +41,7 @@ tool's state.
 | `unbind --token <alias\|id>` | Removes a token from scope | admin |
 | `freeze --token <alias\|id> --account <G…>` | Freezes the account on the token | admin |
 | `unfreeze --token <alias\|id> --account <G…>` | Unfreezes the account on the token | admin |
-| `show [--token <alias\|id>] [--account <G…>]` | Reads initialization, config, bindings, and freeze flags (simulated reads) | — |
+| `show [--token <alias\|id>] [--account <G…>]` | Reads admin, initialization, config, bindings, and freeze flags (simulated reads) | — |
 | `errors [code]` | Lists or decodes the rejection codes (`docs/errors.md`) — offline | — |
 
 `--token` accepts an alias from the config's `tokens` list or a bare
