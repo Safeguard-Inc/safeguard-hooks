@@ -62,8 +62,8 @@ use safeguard_compliance::{
     evaluate_withdraw,
 };
 use safeguard_events::{
-    emit_account_frozen, emit_account_unfrozen, emit_compliance_config_changed, emit_token_bound,
-    emit_token_unbound,
+    emit_account_frozen, emit_account_unfrozen, emit_compliance_config_changed, emit_initialized,
+    emit_token_bound, emit_token_unbound,
 };
 use safeguard_hook_core::{ComplianceDecision, RejectionReason};
 use safeguard_storage::{
@@ -134,11 +134,15 @@ impl ComplianceHooks {
     /// Initializes the contract with `admin` as the sole administrative
     /// authority. Fails when already initialized (an attacker must not be
     /// able to rotate the admin by re-initializing).
+    ///
+    /// Emits an [`Initialized`] event naming the recorded authority, so the
+    /// audit bridge can reconstruct the initial admin of a deployment.
     pub fn initialize(e: Env, admin: Address) -> Result<(), ContractError> {
         if is_initialized(&e) {
             return Err(ContractError::AlreadyInitialized);
         }
         set_admin(&e, &admin);
+        emit_initialized(&e, &admin);
         Ok(())
     }
 
@@ -280,6 +284,11 @@ impl ComplianceHooks {
 
     // ################## PUBLIC READS ##################
 
+    /// The administrative authority, before or after initialization.
+    pub fn admin(e: Env) -> Option<Address> {
+        safeguard_storage::admin(&e)
+    }
+
     /// Whether `token` is bound to this contract.
     pub fn token_is_bound(e: Env, token: Address) -> bool {
         is_token_bound(&e, &token)
@@ -345,7 +354,8 @@ mod tests {
     use soroban_sdk::{contract, contractimpl, symbol_short, Event as _, IntoVal, Symbol};
 
     use safeguard_events::{
-        AccountFrozen, AccountUnfrozen, ComplianceConfigChanged, TokenBound, TokenUnbound,
+        AccountFrozen, AccountUnfrozen, ComplianceConfigChanged, Initialized, TokenBound,
+        TokenUnbound,
     };
 
     /// Deny-list policy pinned to one token (see the compliance crate tests).
@@ -527,6 +537,36 @@ mod tests {
             ),
             Err(ContractError::InvalidConfiguration)
         );
+    }
+
+    #[test]
+    fn initialize_records_the_admin_and_emits_one_event() {
+        let env = Env::new_with_config(EnvTestConfig {
+            capture_snapshot_at_drop: false,
+        });
+        let hooks = env.register(ComplianceHooks, ());
+        let admin = Address::generate(&env);
+
+        let client = ComplianceHooksClient::new(&env, &hooks);
+        client.initialize(&admin);
+
+        // The transition is exactly one Initialized event naming the
+        // recorded authority (checked before the next invocation, because
+        // only the last invocation's events are observable).
+        assert_eq!(
+            env.events().all(),
+            [Initialized {
+                admin: admin.clone()
+            }
+            .to_xdr(&env, &hooks)]
+        );
+
+        // The recorded authority is readable on-chain.
+        assert_eq!(client.admin(), Some(admin));
+
+        // An uninitialized contract exposes no admin.
+        let fresh = env.register(ComplianceHooks, ());
+        assert_eq!(ComplianceHooksClient::new(&env, &fresh).admin(), None);
     }
 
     #[test]

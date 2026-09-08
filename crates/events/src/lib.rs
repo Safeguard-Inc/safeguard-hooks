@@ -9,9 +9,9 @@
 //! ## What is (and is not) emitted
 //!
 //! The enforcement layer emits events only for **state changes it applies
-//! itself**: freezes, unfreezes, token binds/unbinds, and compliance
-//! configuration changes. Per-operation *approvals* are deliberately **not**
-//! emitted:
+//! itself**: initialization, freezes, unfreezes, token binds/unbinds, and
+//! compliance configuration changes. Per-operation *approvals* are
+//! deliberately **not** emitted:
 //!
 //! * An approval event would be indistinguishable from a spoofed call — any
 //!   contract can invoke the hook entry points, and Soroban contracts cannot
@@ -37,6 +37,27 @@
 extern crate std;
 
 use soroban_sdk::{contractevent, Address, Env};
+
+// ################## INITIALIZATION ##################
+
+/// Emitted exactly once, when the contract is initialized and the admin
+/// authority is recorded. The audit bridge uses it to reconstruct the
+/// initial authority of an enforcement deployment.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Initialized {
+    /// The administrative authority recorded at initialization.
+    #[topic]
+    pub admin: Address,
+}
+
+/// Publishes an [`Initialized`] event.
+pub fn emit_initialized(e: &Env, admin: &Address) {
+    Initialized {
+        admin: admin.clone(),
+    }
+    .publish(e);
+}
 
 // ################## FREEZE STATE ##################
 
@@ -152,6 +173,10 @@ mod tests {
 
     #[contractimpl]
     impl EventHost {
+        pub fn initialized(e: Env, admin: Address) {
+            emit_initialized(&e, &admin);
+        }
+
         pub fn frozen(e: Env, token: Address, account: Address) {
             emit_account_frozen(&e, &token, &account);
         }
@@ -179,6 +204,22 @@ mod tests {
         });
         let host = e.register(EventHost, ());
         (e, host)
+    }
+
+    #[test]
+    fn initialization_event_carries_the_admin_topic() {
+        let (e, host) = event_env();
+        let admin = Address::generate(&e);
+
+        EventHostClient::new(&e, &host).initialized(&admin);
+
+        assert_eq!(
+            e.events().all(),
+            [Initialized {
+                admin: admin.clone()
+            }
+            .to_xdr(&e, &host)]
+        );
     }
 
     #[test]

@@ -345,6 +345,11 @@ impl App {
 
         let initialized = self.read("initialized", &[])?;
         println!("initialized: {}", value_or(initialized.as_deref(), "?"));
+        let admin = self.read("admin", &[])?;
+        match admin.as_deref() {
+            Some("null") | None => println!("admin: (none)"),
+            Some(a) => println!("admin: {a}"),
+        }
         let config = self.read("config", &[])?;
         match config.as_deref() {
             Some("null") | None => println!("config: null (enforcement off — hooks fail closed)"),

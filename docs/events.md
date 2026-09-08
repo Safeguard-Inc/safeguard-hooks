@@ -10,6 +10,7 @@ with private data. Implementation: `crates/events`; protocol reference:
 
 | Event | Payload | Meaning |
 | ----- | ------- | ------- |
+| `Initialized` | `admin` | Deployment: the contract was initialized with this authority |
 | `AccountFrozen` | `token`, `account` | Admin froze the account on the token |
 | `AccountUnfrozen` | `token`, `account` | Admin unfroze the account on the token |
 | `TokenBound` | `token` | Admin admitted the token into scope |
