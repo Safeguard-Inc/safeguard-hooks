@@ -15,11 +15,11 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 soroban-sdk = { workspace = true }
-safeguard-hook-core = { path = "../../crates/hook-core" }
-safeguard-storage = { path = "../../crates/storage" }
-safeguard-authorization = { path = "../../crates/authorization" }
-safeguard-compliance = { path = "../../crates/compliance" }
-safeguard-events = { path = "../../crates/events" }
+safeguard-hook-core = { path = "../../crates/hook-core", version = "0.1.0" }
+safeguard-storage = { path = "../../crates/storage", version = "0.1.0" }
+safeguard-authorization = { path = "../../crates/authorization", version = "0.1.0" }
+safeguard-compliance = { path = "../../crates/compliance", version = "0.1.0" }
+safeguard-events = { path = "../../crates/events", version = "0.1.0" }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

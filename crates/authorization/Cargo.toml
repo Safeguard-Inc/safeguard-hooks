@@ -12,8 +12,8 @@ publish = false
 
 [dependencies]
 soroban-sdk = { workspace = true }
-safeguard-storage = { path = "../storage" }
-safeguard-hook-core = { path = "../hook-core" }
+safeguard-storage = { path = "../storage", version = "0.1.0" }
+safeguard-hook-core = { path = "../hook-core", version = "0.1.0" }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

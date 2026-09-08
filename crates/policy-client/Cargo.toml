@@ -12,7 +12,7 @@ publish = false
 
 [dependencies]
 soroban-sdk = { workspace = true }
-safeguard-hook-core = { path = "../hook-core" }
+safeguard-hook-core = { path = "../hook-core", version = "0.1.0" }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
