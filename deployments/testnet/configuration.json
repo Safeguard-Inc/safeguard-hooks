@@ -1,0 +1,23 @@
+{
+  "network": "testnet",
+  "rpc_url": "https://soroban-testnet.stellar.org",
+  "network_passphrase": "Test SDF Network ; September 2015",
+  "hooks_contract_id": "CCZXWOHASCFM53BBLKWOYDAABKVB2B5EWWQN2DRHVCGJA3RGI5OWXX5C",
+  "policy": {
+    "contract_id": "CCGXR4EOTFFWJA2SOZOAKUWK3DVDBWU2HR5ZSM54PGJ2KRTEFIRK2OV3",
+    "note": "safeguard-policy deployment (DEFINE polyrepo) wired to the documented is_authorized(account, token) seam; policy id 'enforcement-default' v1 active — a rule set decidable from on-chain state only."
+  },
+  "sac_passthrough": false,
+  "admin": {
+    "public_key": "GB3P6MQJIYFNWFQ5SU3PDUWOIBKKS5O7QF5LMIPQ3WQBXSXK4LNFIRO3",
+    "secret_key_env": "SAFEGUARD_ADMIN_SK"
+  },
+  "tokens": [
+    {
+      "alias": "sandbox-token",
+      "contract_id": "GC2O7PSLQXL24R7EECSMZC7YD5IB7QP5COX2FHC52SVKREEDSX2WWPWV",
+      "sac_contract_id": null
+    }
+  ],
+  "description": "Live Testnet deployment verified end-to-end on 2026-09-08: DEFINE (safeguard-policy) + ENFORCE (compliance-hooks) wired together. Verified live: compliant operations allowed through the real policy contract; frozen parties revert Error(Contract, #4); a policy-denied party (suspended identity record) reverts #3; unbound tokens revert #2; the real getEvents stream parses cleanly through safeguard-audit's verified wire model. The admin secret key lives in the SAFEGUARD_ADMIN_SK env var only — never in this file. Confidential Tokens on Stellar are a developer preview; treat this deployment as rehearsal, not production."
+}
