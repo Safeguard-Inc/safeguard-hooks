@@ -5,11 +5,16 @@ name: security
 # behavior must stay green against them before merge, matching the security
 # posture in docs/security.md and the threat-model controls in
 # docs/threat-model.md. Runs on every pull request (mandatory before merge).
+# A weekly schedule additionally sweeps the dependency graph (cargo-deny
+# fetches the latest advisory databases) so a freshly disclosed advisory is
+# surfaced even without a PR touching dependencies.
 
 on:
   pull_request:
   push:
     branches: [main]
+  schedule:
+    - cron: "17 3 * * 1"
 
 jobs:
   hardening:
@@ -39,3 +44,16 @@ jobs:
         run: |
           python3 -m pip install jsonschema
           bash scripts/check-schema.sh
+
+  deny:
+    name: advisories · licenses · sources (cargo-deny)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+          arguments: --all-features
