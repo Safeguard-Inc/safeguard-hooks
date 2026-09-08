@@ -1,5 +1,9 @@
 # Safeguard Hooks
 
+[![CI](https://github.com/Safeguard-Inc/safeguard-hooks/actions/workflows/ci.yml/badge.svg)](https://github.com/Safeguard-Inc/safeguard-hooks/actions/workflows/ci.yml)
+[![Security](https://github.com/Safeguard-Inc/safeguard-hooks/actions/workflows/security.yml/badge.svg)](https://github.com/Safeguard-Inc/safeguard-hooks/actions/workflows/security.yml)
+[![Integration](https://github.com/Safeguard-Inc/safeguard-hooks/actions/workflows/integration.yml/badge.svg)](https://github.com/Safeguard-Inc/safeguard-hooks/actions/workflows/integration.yml)
+
 **Enforcement layer of the Safeguard compliance stack for Stellar Confidential Tokens.**
 
 Safeguard is a three-polyrepo system built around a DEFINE → ENFORCE → VERIFY pipeline:
