@@ -14,6 +14,8 @@ members = [
 
 [workspace.package]
 version = "0.1.0"
+description = "Enforcement layer for the Safeguard compliance stack on Stellar Confidential Tokens: a fail-closed Soroban compliance-hooks contract with freeze administration and SAC passthrough."
+documentation = "https://docs.rs/safeguard-hooks"
 authors = ["Safeguard Inc."]
 edition = "2021"
 license = "Apache-2.0"
