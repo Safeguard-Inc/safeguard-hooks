@@ -78,29 +78,25 @@ use safeguard_storage::{
 /// [`RejectionReason`] codes 1–11; contract-specific codes follow.
 #[contracterror]
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// Every variant here is produced by a real gate; codes are stable and
+/// non-dense (removed codes are never reissued — see `docs/errors.md`).
+/// Admin-caller failures surface as host-level `require_auth` reverts, not
+/// contract errors, so there is deliberately no "unauthorized caller" code.
 pub enum ContractError {
-    /// The caller was not authorized to perform the operation.
-    UnauthorizedCaller = 1,
     /// The token the operation concerns is not bound to this contract.
     UnboundToken = 2,
     /// The configured policy denied an account.
     PolicyDenied = 3,
     /// An account holding funds is frozen.
     AccountFrozen = 4,
-    /// The spender of a delegated flow is not authorized.
+    /// The spender of a delegated flow is denied by policy.
     SpenderNotAuthorized = 5,
-    /// The policy's sanctions screen blocked the account.
-    SanctionsBlocked = 6,
-    /// The policy's jurisdiction rule blocked the account.
-    JurisdictionRestricted = 7,
     /// The underlying SAC authorization check failed.
     SacAuthorizationFailed = 8,
     /// The contract configuration is invalid or absent.
     InvalidConfiguration = 9,
     /// The policy contract could not be evaluated (fail-closed).
     PolicyUnavailable = 10,
-    /// The operation requires a registered account.
-    RegistrationRequired = 11,
     /// `initialize` was called on an already-initialized contract.
     AlreadyInitialized = 12,
 }
@@ -108,17 +104,13 @@ pub enum ContractError {
 impl From<RejectionReason> for ContractError {
     fn from(reason: RejectionReason) -> Self {
         match reason {
-            RejectionReason::UnauthorizedCaller => ContractError::UnauthorizedCaller,
             RejectionReason::UnboundToken => ContractError::UnboundToken,
             RejectionReason::PolicyDenied => ContractError::PolicyDenied,
             RejectionReason::AccountFrozen => ContractError::AccountFrozen,
             RejectionReason::SpenderNotAuthorized => ContractError::SpenderNotAuthorized,
-            RejectionReason::SanctionsBlocked => ContractError::SanctionsBlocked,
-            RejectionReason::JurisdictionRestricted => ContractError::JurisdictionRestricted,
             RejectionReason::SacAuthorizationFailed => ContractError::SacAuthorizationFailed,
             RejectionReason::InvalidConfiguration => ContractError::InvalidConfiguration,
             RejectionReason::PolicyUnavailable => ContractError::PolicyUnavailable,
-            RejectionReason::RegistrationRequired => ContractError::RegistrationRequired,
         }
     }
 }
@@ -891,9 +883,12 @@ mod tests {
         client.mock_all_auths().set_config(&Some(policy), &true);
         client.mock_all_auths().bind_token(&token, &Some(sac));
 
+        // The spender is screened by policy only and holds no funds, so its
+        // denial is the distinct SpenderNotAuthorized outcome (not a
+        // fund-holder PolicyDenied).
         assert_eq!(
             try_before_transfer_from(&env, &hooks, &token, &spender, &alice, &bob),
-            Err(ContractError::PolicyDenied)
+            Err(ContractError::SpenderNotAuthorized)
         );
     }
 

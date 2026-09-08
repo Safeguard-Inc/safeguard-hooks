@@ -39,10 +39,13 @@ fn errors_reference_is_offline_and_complete() {
     assert!(out.status.success());
     let text = String::from_utf8_lossy(&out.stdout);
     for (code, name) in [
-        (" 1", "unauthorized_caller"),
         (" 2", "unbound_token"),
         (" 3", "policy_denied"),
         (" 4", "account_frozen"),
+        (" 5", "spender_not_authorized"),
+        (" 8", "sac_authorization_failed"),
+        (" 9", "invalid_configuration"),
+        ("10", "policy_unavailable"),
         ("12", "already_initialized"),
     ] {
         assert!(text.contains(name), "errors output missing {name}:\n{text}");

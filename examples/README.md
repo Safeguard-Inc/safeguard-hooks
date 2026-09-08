@@ -12,8 +12,8 @@ replace them with freshly minted ids from your own deployment (the CLI's
 | `basic-compliance/` | The default deployment: allow-all policy, one confidential token over its SAC, passthrough on. |
 | `allowlist/` | Only listed accounts transact; everyone else is denied. |
 | `denylist/` | Everyone transacts except the listed accounts. |
-| `sanctions-policy/` | Policy-side sanctions screening; denials surface as `sanctions_blocked`. |
-| `jurisdiction-policy/` | Policy-side jurisdiction rules; denials surface as `jurisdiction_restricted`. |
+| `sanctions-policy/` | Policy-side sanctions screening; denials surface as `policy_denied` on the boolean policy wire. |
+| `jurisdiction-policy/` | Policy-side jurisdiction rules; denials surface as `policy_denied` on the boolean policy wire. |
 | `sac-passthrough/` | Optional SAC `authorized()` composition on top of policy. |
 | `frozen-account/` | Admin-freeze workflow against a configured token. |
 | `delegated-transfer/` | Spender-screened `transfer_from` flows (spender is policy-gated only). |

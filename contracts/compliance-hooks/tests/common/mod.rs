@@ -402,9 +402,15 @@ where
         if holds_funds && frozen(party) {
             return Err(ContractError::AccountFrozen);
         }
-        // Policy screens every party, spender included.
+        // Policy screens every party, spender included. The spender holds
+        // no funds, so its denial is the distinct SpenderNotAuthorized
+        // outcome (mirrors the evaluator's role-aware mapping).
         if blocked == Some(party) {
-            return Err(ContractError::PolicyDenied);
+            return Err(if holds_funds {
+                ContractError::PolicyDenied
+            } else {
+                ContractError::SpenderNotAuthorized
+            });
         }
         // SAC passthrough applies to fund holders only.
         if holds_funds && sac_passthrough && !sac_authorized(party) {

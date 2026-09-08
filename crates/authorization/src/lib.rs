@@ -63,8 +63,8 @@
 //! Failures are reported with [`safeguard_hook_core::RejectionReason`] so
 //! the whole layer speaks one machine-readable vocabulary. Signature
 //! failures cannot be returned: `Address::require_auth` panics and reverts
-//! the transaction with the host authorization error, which `docs/errors.md`
-//! maps to `unauthorized_caller`.
+//! the transaction with the host authorization error — deliberately no
+//! contract code (see `docs/errors.md`).
 
 #![no_std]
 #[cfg(test)]

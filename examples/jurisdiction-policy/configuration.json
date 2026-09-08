@@ -15,5 +15,5 @@
       "contract_id": "CAAAAAUSDCOINFIDENTIALAAAAAAAAAAAAAAAAAA"
     }
   ],
-  "description": "Jurisdiction-restricted policy (fixtures/policies/jurisdiction.json). Jurisdiction data is policy-side; denials surface as RejectionReason::JurisdictionRestricted."
+  "description": "Jurisdiction-restricted policy (fixtures/policies/jurisdiction.json). Jurisdiction data is policy-side; denials surface on the boolean is_authorized wire as policy_denied (code 3) on the hooks contract."
 }

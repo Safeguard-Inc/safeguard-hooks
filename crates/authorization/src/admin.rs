@@ -18,10 +18,12 @@
 //!   returns [`RejectionReason::InvalidConfiguration`]. State cannot be
 //!   changed on an uninitialized contract.
 //! * Admin stored but the caller is not authorized: `require_auth` panics
-//!   and the transaction reverts with the host authorization error (mapped
-//!   to `unauthorized_caller` in `docs/errors.md`). The panic cannot be
-//!   caught on-chain, which is the desired semantics: an unauthorized
-//!   attempt aborts the operation.
+//!   and the transaction reverts with the host authorization error. There is
+//!   deliberately no contract code for this (see `docs/errors.md` — the
+//!   completeness audit removed `unauthorized_caller` because the host
+//!   reverts before the contract returns). The panic cannot be caught
+//!   on-chain, which is the desired semantics: an unauthorized attempt
+//!   aborts the operation.
 
 use soroban_sdk::Env;
 

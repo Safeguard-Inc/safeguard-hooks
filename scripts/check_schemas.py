@@ -42,7 +42,6 @@ INSTANCES = {
     ],
     "authorization-decision.schema.json": [
         "fixtures/accounts/blocked.json",
-        "fixtures/accounts/unregistered.json",
         "fixtures/operations/register/expected-decision.json",
         "fixtures/operations/deposit/expected-decision.json",
         "fixtures/operations/merge/expected-decision.json",

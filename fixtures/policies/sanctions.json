@@ -1,6 +1,6 @@
 {
   "name": "sanctions",
-  "description": "Sanctions-screened accounts are denied. Rule evaluation lives in safeguard-policy; the hooks contract surfaces the denial as RejectionReason::SanctionsBlocked (code 6) when the policy reports it.",
+  "description": "Sanctions-screened accounts are denied. Rule evaluation lives in safeguard-policy; the hooks contract surfaces the denial on the boolean is_authorized wire as policy_denied (code 3). The policy-side reason attribution (sanctions vs. jurisdiction) is recorded in safeguard-policy's evaluation records and consumed by audit tooling.",
   "sanctioned_accounts": [
     "GEEEEEEEVEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
   ]

@@ -88,11 +88,20 @@ fn screen_party(
         return ComplianceDecision::Deny(RejectionReason::AccountFrozen);
     }
 
-    // Policy: every named party is screened, spender included.
+    // Policy: every named party is screened, spender included. The spender
+    // holds no funds and is screened by policy only, so its denial is the
+    // distinct, less-privileged SpenderNotAuthorized outcome rather than a
+    // fund-holder PolicyDenied.
     if let Some(policy) = &config.policy {
         match safeguard_policy_client::is_authorized(e, policy, account, token) {
             Ok(true) => {}
-            Ok(false) => return ComplianceDecision::Deny(RejectionReason::PolicyDenied),
+            Ok(false) => {
+                return ComplianceDecision::Deny(if role == PartyRole::Spender {
+                    RejectionReason::SpenderNotAuthorized
+                } else {
+                    RejectionReason::PolicyDenied
+                })
+            }
             Err(reason) => return ComplianceDecision::Deny(reason),
         }
     }
@@ -627,13 +636,14 @@ mod tests {
         set_policy(&f, Some(&policy), false);
 
         // The spender holds no funds but is still screened by policy: a
-        // delegation to a non-compliant spender fails.
+        // delegation to a non-compliant spender fails with the distinct
+        // spender outcome, not a fund-holder PolicyDenied.
         let decision = f.env.as_contract(&f.host, || {
             evaluate_transfer_from(&f.env, &f.token, &spender, &f.alice, &f.bob)
         });
         assert_eq!(
             decision,
-            ComplianceDecision::Deny(RejectionReason::PolicyDenied)
+            ComplianceDecision::Deny(RejectionReason::SpenderNotAuthorized)
         );
     }
 

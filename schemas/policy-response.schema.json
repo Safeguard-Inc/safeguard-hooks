@@ -18,12 +18,9 @@
     "reason": {
       "type": "string",
       "enum": [
-        "policy_denied",
-        "sanctions_blocked",
-        "jurisdiction_restricted",
-        "registration_required"
+        "policy_denied"
       ],
-      "description": "Optional stable reason a deny is reported with; maps onto RejectionReason names the hooks contract surfaces."
+      "description": "Optional stable reason a deny is reported with. The on-chain policy wire is a boolean (is_authorized -> bool), so every policy denial surfaces as policy_denied; finer policy-side attribution (sanctions, jurisdiction, ...) is visible only on safeguard-policy and in audit tooling."
     }
   },
   "$defs": {
