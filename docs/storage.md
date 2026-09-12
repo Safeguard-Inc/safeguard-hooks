@@ -13,7 +13,24 @@ lives.
 | `Admin` | instance | the administrative authority (single address) |
 | `Config` | instance | the active [`ComplianceConfig`] — `policy` address and `sac_passthrough` flag |
 | `ConfigVersion` | instance | monotonic count of configuration rewrites (policy rotation included) — the audit ordering anchor |
-| `Version` | instance | state-layout version for forward migrations |
+| `Version` | instance | state-layout version, stamped at `initialize` (and self-healed by admin config writes for deployments upgraded in place) — read via `state_version()` |
+
+## State-layout versioning and upgrades
+
+`Version` records which layout a deployment's state is written in. It is
+stamped at `initialize` (the one authoritative, admin-authorized birth
+moment) and exposed as `state_version()`; it reads `0` only for a never-
+initialized contract. Upgrade tooling compares `state_version()` against the
+new code's compiled-in `VERSION` (`crates/storage/src/versions.rs`) to
+decide whether a migration must run before the upgraded code serves
+traffic.
+
+Deployments upgraded in place from pre-stamping code self-heal: the first
+admin-gated `set_config` after the upgrade stamps the layout that code
+actually runs (guarded — an existing stamp is never overwritten). The
+security guarantee is unchanged either way: `initialize` requires the
+prospective admin's authorization, so only the deployment's admin (or the
+bootstrap transaction itself) can influence the stamp.
 | `TokenBinding(token)` | persistent | whether `token` is in scope and, when it wraps a SAC, the SAC address |
 | `Freeze(token, account)` | persistent | per-(token, account) freeze flag |
 

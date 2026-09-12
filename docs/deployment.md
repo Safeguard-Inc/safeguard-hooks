@@ -70,6 +70,12 @@ The lifecycle is one-way: **initialize → set_config → bind_token**, then
 per-account freeze administration. Enforcement cannot be switched off once
 configured (see `docs/enforcement-model.md`).
 
+> `initialize` requires the prospective admin's authorization — the call is
+> signed by (or sponsored for) the admin key itself. An unsigned `initialize`
+> reverts at the host, so a fresh deployment cannot be admin-hijacked by a
+> front-runner who observes the deploy transaction. The CLI's `deploy` flow
+> transacts with the admin key and satisfies this automatically.
+
 ```bash
 HOOKS=C…
 POLICY=C…
