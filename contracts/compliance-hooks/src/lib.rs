@@ -369,6 +369,49 @@ fn enforce(decision: ComplianceDecision) -> Result<(), ContractError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The code table in `docs/errors.md` is the machine-readable contract
+    /// consumed by the operator CLI, the audit polyrepo, and incident
+    /// tooling; this test pins the contract's error surface to it. The
+    /// exhaustive match breaks compilation when a variant is added without
+    /// being listed here (and in the docs), so the table can never drift
+    /// from the on-chain codes.
+    #[test]
+    fn every_error_code_matches_the_documented_table() {
+        // Code assignments from docs/errors.md; the exhaustive match makes
+        // adding a variant without updating them a compile error.
+        let live: [u32; 8] = [
+            ContractError::UnboundToken as u32,
+            ContractError::PolicyDenied as u32,
+            ContractError::AccountFrozen as u32,
+            ContractError::SpenderNotAuthorized as u32,
+            ContractError::SacAuthorizationFailed as u32,
+            ContractError::InvalidConfiguration as u32,
+            ContractError::PolicyUnavailable as u32,
+            ContractError::AlreadyInitialized as u32,
+        ];
+        #[allow(dead_code, unreachable_patterns)]
+        fn pin(e: ContractError) -> u32 {
+            match e {
+                ContractError::UnboundToken => 2,
+                ContractError::PolicyDenied => 3,
+                ContractError::AccountFrozen => 4,
+                ContractError::SpenderNotAuthorized => 5,
+                ContractError::SacAuthorizationFailed => 8,
+                ContractError::InvalidConfiguration => 9,
+                ContractError::PolicyUnavailable => 10,
+                ContractError::AlreadyInitialized => 12,
+            }
+        }
+        let documented: [u32; 8] = [2, 3, 4, 5, 8, 9, 10, 12];
+        let mut sorted_live = live;
+        sorted_live.sort_unstable();
+        assert_eq!(
+            sorted_live, documented,
+            "ContractError and the docs/errors.md code table disagree — \
+             update the table and this test together"
+        );
+    }
     use soroban_sdk::testutils::{Address as _, EnvTestConfig, Events as _};
     use soroban_sdk::{contract, contractimpl, symbol_short, Event as _, IntoVal, Symbol};
 
