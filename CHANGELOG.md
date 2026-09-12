@@ -9,6 +9,29 @@ single-improvement commits.
 
 ## [Unreleased]
 
+### Security — enforcement bootstrap and state versioning
+
+- **`initialize` requires the prospective admin's authorization** — a fresh
+  deployment can no longer be admin-hijacked by a front-runner; an unsigned
+  bootstrap reverts at the host. Matches the policy contract's bootstrap.
+  Documented in `docs/deployment.md`.
+- **State-layout version stamping** — `initialize` stamps the storage
+  layout version (`VERSION`), exposed via the new `state_version()` read;
+  deployments upgraded in place self-heal the stamp on their first
+  admin-gated `set_config` (guarded, no-clobber). Upgrade tooling can now
+  compare on-chain layout against compiled-in layout. Documented in
+  `docs/storage.md`.
+
+### Hardening — interface and CI
+
+- **Error-code table pinned** — a new exhaustive-match test fails CI when a
+  `ContractError` variant and the code table in `docs/errors.md` drift
+  apart, keeping the machine-readable error surface complete.
+- **Release gating** — `release.yml` now runs the full quality gate (fmt,
+  clippy, tests, schemas) before attaching contract wasm to a release.
+- **Workspace lint policy** — no hand-written unsafe (`unsafe_code` denied)
+  and `clippy::all` enforced workspace-wide, matching `safeguard-policy`.
+
 ### Added — hardening and governance
 
 * **Binding TTL renewal** — `token_binding()` reads now renew the TTL of a
