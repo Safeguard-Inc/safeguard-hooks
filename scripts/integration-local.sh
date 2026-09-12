@@ -98,19 +98,22 @@ fund() { # $1 identity name
   local addr code attempt
   addr="$("$STELLAR" keys address "$1")"
   # The friendbot is part of the local container stack but may not be ready
-  # the instant the container reports healthy. A connection failure means
-  # "not up yet" (retry); an HTTP answer means the request was processed —
-  # success funds the account, a refusal is the friendbot's "already
-  # exists" path and needs no funding. Only give up after the retry budget.
-  for attempt in $(seq 1 10); do
+  # the instant the container reports healthy — and it can answer with a
+  # transient 5xx/429 while warming up. Only a *definitive* answer may stop
+  # the loop: 2xx (freshly funded) or 400 (friendbot's "account already
+  # exists" refusal — the account is on ledger, nothing to fund). Anything
+  # else (connection failure, 5xx, 429) retries until the budget runs out;
+  # giving up early used to surface much later as "Account not found" at
+  # deploy time, which read as a contract bug rather than a warm-up race.
+  for attempt in $(seq 1 20); do
     code="$(curl -s -o /dev/null -w '%{http_code}' "$FRIENDBOT_URL?addr=$addr" 2>/dev/null || echo 000)"
     case "$code" in
-      2*) return 0 ;; # freshly funded
-      000) sleep 3 ;; # friendbot not reachable yet: retry after warm-up
-      *) return 0 ;;  # processed (already-funded or refused): move on
+      2*) return 0 ;;                       # freshly funded
+      400) return 0 ;;                       # already funded (friendbot refusal)
+      *) sleep 3 ;;                          # 000 / 5xx / 429: not ready, retry
     esac
   done
-  say "warning: friendbot never reported success for $1; a later step will fail if the account is truly absent"
+  die "friendbot never produced a definitive answer for $1 after 20 attempts (last HTTP code: ${code:-none})"
 }
 for name in admin alice bob token; do fund "$name"; done
 
