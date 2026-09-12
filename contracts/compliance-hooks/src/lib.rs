@@ -69,9 +69,9 @@ use safeguard_hook_core::{ComplianceDecision, RejectionReason};
 use safeguard_storage::{
     bind_token as storage_bind, bump_config_version, compliance_config as storage_config,
     config_version as storage_config_version, freeze_account as storage_freeze,
-    is_frozen as storage_is_frozen, is_token_bound, set_admin, set_compliance_config,
+    is_frozen as storage_is_frozen, is_token_bound, set_admin, set_compliance_config, set_version,
     token_binding, unbind_token as storage_unbind, unfreeze_account as storage_unfreeze,
-    ComplianceConfig,
+    version as storage_version, ComplianceConfig, VERSION,
 };
 
 /// Contract errors surfaced by reverts. Codes mirror
@@ -134,6 +134,12 @@ impl ComplianceHooks {
             return Err(ContractError::AlreadyInitialized);
         }
         set_admin(&e, &admin);
+        // Stamp the state-layout version the deployment was born with. The
+        // layout version exists so a future upgrade can detect on-chain
+        // state that predates a layout change; without a recorded value at
+        // birth, every deployment would look "pre-versioning" forever and
+        // the migration machinery could never trust its own premise.
+        set_version(&e, VERSION);
         emit_initialized(&e, &admin);
         Ok(())
     }
@@ -289,6 +295,15 @@ impl ComplianceHooks {
     /// Whether the contract has been initialized.
     pub fn initialized(e: Env) -> bool {
         is_initialized(&e)
+    }
+
+    /// The state-layout version this deployment's storage is written in
+    /// (`0` only for a deployment that predates version stamping — see
+    /// `docs/storage.md`). Upgrade tooling compares this against the
+    /// contract's compiled-in [`safeguard_storage::VERSION`] to decide
+    /// whether a migration must run before the new code serves traffic.
+    pub fn state_version(e: Env) -> u32 {
+        storage_version(&e).unwrap_or(0)
     }
 
     /// The active compliance configuration, if enforcement is configured.
@@ -497,6 +512,26 @@ mod tests {
             Err(Ok(err)) => Err(err),
             Err(Err(_)) => panic!("invocation failed at the host level"),
         }
+    }
+
+    #[test]
+    fn initialize_stamps_the_state_layout_version() {
+        let env = Env::new_with_config(EnvTestConfig {
+            capture_snapshot_at_drop: false,
+        });
+        let hooks = env.register(ComplianceHooks, ());
+        let client = ComplianceHooksClient::new(&env, &hooks);
+
+        // Before initialization there is no stamped layout version.
+        assert_eq!(client.state_version(), 0);
+
+        client.initialize(&Address::generate(&env));
+
+        // The deployment records the layout version it was born with, and
+        // re-initialization cannot rewrite it.
+        assert_eq!(client.state_version(), safeguard_storage::VERSION);
+        assert!(client.try_initialize(&Address::generate(&env)).is_err());
+        assert_eq!(client.state_version(), safeguard_storage::VERSION);
     }
 
     #[test]
