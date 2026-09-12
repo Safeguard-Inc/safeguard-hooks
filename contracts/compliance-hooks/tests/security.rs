@@ -287,7 +287,7 @@ fn double_initialization_cannot_rotate_the_admin() {
     let admin2 = Address::generate(&env);
     let token = Address::generate(&env);
 
-    call(&env, &hooks, "initialize", (admin1.clone(),)).unwrap();
+    authorized_call(&env, &hooks, "initialize", (admin1.clone(),)).unwrap();
 
     // admin2 tries to re-initialize (which would rotate the admin).
     let res = call(&env, &hooks, "initialize", (admin2.clone(),));

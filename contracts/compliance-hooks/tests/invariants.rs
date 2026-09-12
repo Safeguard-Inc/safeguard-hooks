@@ -278,7 +278,7 @@ fn unconfigured_contract_never_allows_an_operation() {
     let bob = Address::generate(&env);
 
     // Initialize and bind, but never write a configuration.
-    call(&env, &hooks, "initialize", (Address::generate(&env),)).unwrap();
+    authorized_call(&env, &hooks, "initialize", (Address::generate(&env),)).unwrap();
     authorized_call(
         &env,
         &hooks,

@@ -221,7 +221,7 @@ impl Ctx {
 
     /// Runs `initialize` plus admin configuration and binding (both tokens).
     fn configure(&self, policy: Address, sac_passthrough: bool) {
-        call(&self.env, &self.hooks, "initialize", (self.admin.clone(),)).unwrap();
+        authorized_call(&self.env, &self.hooks, "initialize", (self.admin.clone(),)).unwrap();
         authorized_call(
             &self.env,
             &self.hooks,

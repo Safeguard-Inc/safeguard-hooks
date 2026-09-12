@@ -127,12 +127,24 @@ impl ComplianceHooks {
     /// authority. Fails when already initialized (an attacker must not be
     /// able to rotate the admin by re-initializing).
     ///
+    /// `admin` must authorize the call (`require_auth`). Soroban contracts
+    /// cannot introspect their caller, so without this check any account
+    /// that observed a fresh deployment could invoke `initialize` first and
+    /// seize the admin seat — front-running the deployer and owning every
+    /// subsequent configuration, binding, and freeze decision. Requiring
+    /// the prospective admin's signature makes the seat claimable only by
+    /// the key that was meant to hold it, mirroring the policy contract's
+    /// bootstrap. The initialization check precedes the authorization so a
+    /// late re-initialization attempt surfaces the specific
+    /// [`ContractError::AlreadyInitialized`] rather than a host auth error.
+    ///
     /// Emits an [`Initialized`] event naming the recorded authority, so the
     /// audit bridge can reconstruct the initial admin of a deployment.
     pub fn initialize(e: Env, admin: Address) -> Result<(), ContractError> {
         if is_initialized(&e) {
             return Err(ContractError::AlreadyInitialized);
         }
+        admin.require_auth();
         set_admin(&e, &admin);
         // Stamp the state-layout version the deployment was born with. The
         // layout version exists so a future upgrade can detect on-chain
@@ -443,7 +455,7 @@ mod tests {
         let sac = env.register(MockSac, (&alice, &bob));
 
         let client = ComplianceHooksClient::new(&env, &hooks);
-        client.initialize(&Address::generate(&env));
+        client.mock_all_auths().initialize(&Address::generate(&env));
         client
             .mock_all_auths()
             .set_config(&Some(policy_allowing(&env, &token)), &true);
@@ -525,7 +537,16 @@ mod tests {
         // Before initialization there is no stamped layout version.
         assert_eq!(client.state_version(), 0);
 
-        client.initialize(&Address::generate(&env));
+        // The prospective admin must authorize the claim: an
+        // unauthenticated initialize reverts at the host, so a fresh
+        // deployment cannot be admin-hijacked by a front-runner.
+        let unauthenticated = client.try_initialize(&Address::generate(&env));
+        assert!(
+            unauthenticated.is_err(),
+            "initialize without the admin's auth must revert"
+        );
+
+        client.mock_all_auths().initialize(&Address::generate(&env));
 
         // The deployment records the layout version it was born with, and
         // re-initialization cannot rewrite it.
@@ -575,7 +596,7 @@ mod tests {
         let admin = Address::generate(&env);
 
         let client = ComplianceHooksClient::new(&env, &hooks);
-        client.initialize(&admin);
+        client.mock_all_auths().initialize(&admin);
 
         // The transition is exactly one Initialized event naming the
         // recorded authority (checked before the next invocation, because
@@ -605,7 +626,7 @@ mod tests {
         let admin = Address::generate(&env);
 
         let client = ComplianceHooksClient::new(&env, &hooks);
-        client.initialize(&admin);
+        client.mock_all_auths().initialize(&admin);
 
         // A second initialize is an admin-rotation attempt.
         let res = env.try_invoke_contract::<(), ContractError>(
@@ -647,7 +668,7 @@ mod tests {
 
         let client = ComplianceHooksClient::new(&env, &hooks);
         let admin = Address::generate(&env);
-        client.initialize(&admin);
+        client.mock_all_auths().initialize(&admin);
         client.mock_all_auths().set_config(&Some(policy), &true);
         client.mock_all_auths().bind_token(&token, &Some(sac));
 
@@ -675,7 +696,7 @@ mod tests {
 
         let client = ComplianceHooksClient::new(&env, &hooks);
         let admin = Address::generate(&env);
-        client.initialize(&admin);
+        client.mock_all_auths().initialize(&admin);
         client.mock_all_auths().set_config(&Some(policy), &true);
         client.mock_all_auths().bind_token(&token, &Some(sac));
 
@@ -794,7 +815,7 @@ mod tests {
         let alice = Address::generate(&env);
 
         let client = ComplianceHooksClient::new(&env, &hooks);
-        client.initialize(&Address::generate(&env));
+        client.mock_all_auths().initialize(&Address::generate(&env));
         // Bind the token but never configure enforcement.
         client.mock_all_auths().bind_token(&token, &None);
 
@@ -830,7 +851,7 @@ mod tests {
 
         let client = ComplianceHooksClient::new(&env, &hooks);
         let admin = Address::generate(&env);
-        client.initialize(&admin);
+        client.mock_all_auths().initialize(&admin);
         client.mock_all_auths().set_config(&Some(policy), &true);
         client.mock_all_auths().bind_token(&token, &Some(sac));
 
@@ -914,7 +935,7 @@ mod tests {
         let policy = policy_address(&env, &spender, &token); // Spender blocked.
 
         let client = ComplianceHooksClient::new(&env, &hooks);
-        client.initialize(&Address::generate(&env));
+        client.mock_all_auths().initialize(&Address::generate(&env));
         client.mock_all_auths().set_config(&Some(policy), &true);
         client.mock_all_auths().bind_token(&token, &Some(sac));
 
@@ -998,7 +1019,7 @@ mod tests {
         let policy = policy_allowing(&env, &token);
 
         let client = ComplianceHooksClient::new(&env, &hooks);
-        client.initialize(&Address::generate(&env));
+        client.mock_all_auths().initialize(&Address::generate(&env));
         client.mock_all_auths().set_config(&Some(policy), &true);
         client
             .mock_all_auths()
@@ -1052,7 +1073,7 @@ mod tests {
         let policy = env.register(MultiTokenPolicy, (Some(bob.clone()),));
 
         let client = ComplianceHooksClient::new(&env, &hooks);
-        client.initialize(&admin);
+        client.mock_all_auths().initialize(&admin);
         client.mock_all_auths().set_config(&Some(policy), &true);
         client.mock_all_auths().bind_token(&token_a, &Some(sac_a));
         client.mock_all_auths().bind_token(&token_b, &Some(sac_b));
