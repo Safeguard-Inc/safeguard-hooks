@@ -14,6 +14,7 @@
 use soroban_sdk::{contracttype, Address, Env};
 
 use crate::keys::DataKey;
+use crate::versions::{set_version, version, VERSION};
 
 /// Active enforcement configuration shared by all bound tokens.
 #[contracttype]
@@ -63,6 +64,17 @@ pub fn compliance_config(e: &Env) -> Option<ComplianceConfig> {
 /// calls it unguarded is a configuration attack.
 pub fn set_compliance_config(e: &Env, config: &ComplianceConfig) {
     e.storage().instance().set(&DataKey::Config, config);
+    // Self-heal the layout stamp: deployments upgraded in place from code
+    // that predated version stamping have no recorded layout version, and
+    // their state was laid out by layout 1 — the layout this code still
+    // reads and writes. Every admin-gated configuration write is a
+    // transitional moment when the operator is present, so stamping here
+    // (idempotently, and only when absent) retires the 0-read state without
+    // a dedicated migration entry point. New deployments stamped this at
+    // `initialize` and are untouched.
+    if version(e).is_none() {
+        set_version(e, VERSION);
+    }
 }
 
 /// Returns how many times the compliance configuration has been rewritten,
@@ -116,6 +128,33 @@ mod tests {
             };
             set_compliance_config(&e, &config);
             assert_eq!(compliance_config(&e), Some(config));
+        });
+    }
+
+    #[test]
+    fn config_write_self_heals_a_missing_layout_stamp() {
+        let (e, contract) = host_env();
+        let policy = account(&e);
+
+        e.as_contract(&contract, || {
+            // A pre-stamping deployment has no layout version recorded.
+            assert_eq!(version(&e), None);
+            let config = ComplianceConfig {
+                policy: Some(policy),
+                sac_passthrough: true,
+            };
+
+            // The first config write stamps the layout it is running under
+            // — this is the self-heal path for deployments upgraded in place
+            // from code that predated version stamping.
+            set_compliance_config(&e, &config);
+            assert_eq!(version(&e), Some(VERSION));
+
+            // An already-stamped deployment is never rewritten to a value
+            // the running code does not own (a foreign stamp survives).
+            e.storage().instance().set(&DataKey::Version, &123u32);
+            set_compliance_config(&e, &config);
+            assert_eq!(version(&e), Some(123));
         });
     }
 
