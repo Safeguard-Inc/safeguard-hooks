@@ -9,8 +9,34 @@ on:
     tags: ["v*"]
 
 jobs:
+  gate:
+    name: full gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup component add --toolchain stable rustfmt clippy
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --locked --workspace
+
+      - name: Validate schemas and fixtures
+        run: |
+          python3 -m pip install jsonschema
+          bash scripts/check-schema.sh
+
   wasm:
     name: build and publish contract wasm
+    needs: gate
     runs-on: ubuntu-latest
     permissions:
       contents: write
