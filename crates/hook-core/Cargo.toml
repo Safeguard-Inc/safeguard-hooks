@@ -11,3 +11,6 @@ categories.workspace = true
 publish = false
 
 [dependencies]
+
+[lints]
+workspace = true

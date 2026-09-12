@@ -44,3 +44,18 @@ categories = ["no-std", "wasm"]
 
 [workspace.dependencies]
 soroban-sdk = { version = "27.0.6" }
+
+# Shared lint policy: no hand-written unsafe code anywhere in the workspace.
+# `deny` rather than `forbid` is deliberate: soroban-sdk's #[contractimpl]
+# macro emits `#[allow(unsafe_code)]` inside its generated harness, and
+# forbid makes even that macro-owned allowance a hard error (E0453). With
+# deny, generated code stays compilable while every human-authored unsafe
+# block still fails the clippy gate (-D warnings); an explicit crate-level
+# `#![allow(unsafe_code)]` would be a visible, reviewable diff. Mirrors
+# safeguard-policy's intent with a scope that fits this workspace's
+# macro-heavy test surfaces.
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }

@@ -16,3 +16,6 @@ safeguard-hook-core = { path = "../hook-core", version = "0.1.0" }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+
+[lints]
+workspace = true
