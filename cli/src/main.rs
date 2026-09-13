@@ -186,15 +186,14 @@ fn run(cli: &Cli) -> Result<(), String> {
     }
 
     let config = Config::load(&cli.config.to_string_lossy())?;
-    let runner = Stellar {
-        bin: cli.stellar_bin.clone(),
-    };
-    ensure_network(&runner, &config)?;
 
     // `verify` is read-only and secret-free, so it bypasses admin-source
     // resolution entirely: a smoke test must run on a deployment whose
     // secret the operator does not have (a reviewer's machine, CI, or an
-    // incident response after key rotation).
+    // incident response after key rotation). It also validates its own
+    // arguments *before* any ledger call, so a placeholder left in a
+    // deployment record is reported as a placeholder rather than as an
+    // opaque network failure.
     if let Command::Verify {
         source_account,
         account,
@@ -217,6 +216,10 @@ fn run(cli: &Cli) -> Result<(), String> {
                 ));
             }
         }
+        let runner = Stellar {
+            bin: cli.stellar_bin.clone(),
+        };
+        ensure_network(&runner, &config)?;
         let checks = verify(&runner, &config, &source_account, account.as_deref());
         print_report(&checks, &config, &source_account);
         let failed = checks.iter().filter(|c| c.status == Status::Fail).count();
@@ -229,6 +232,10 @@ fn run(cli: &Cli) -> Result<(), String> {
         return Ok(());
     }
 
+    let runner = Stellar {
+        bin: cli.stellar_bin.clone(),
+    };
+    ensure_network(&runner, &config)?;
     let source = config.admin_source(cli.source.as_deref())?;
     let app = App {
         config,

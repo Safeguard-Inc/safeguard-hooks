@@ -193,15 +193,27 @@ fn verify_rejects_a_placeholder_source_account_before_any_ledger_call() {
     )
     .unwrap();
 
+    // The stellar binary is deliberately absent: a placeholder must be
+    // reported before any ledger call, so this proves the validation happens
+    // first. Pointing at a missing binary rather than relying on the runner
+    // not having one keeps the test independent of the machine it runs on —
+    // the previous version passed locally (where stellar was installed) and
+    // failed in CI with "failed to run stellar" instead.
     let out = bin()
         .arg("--config")
         .arg(&path)
+        .arg("--stellar-bin")
+        .arg(dir.join("no-such-stellar-binary"))
         .arg("verify")
         .output()
         .unwrap();
     assert!(!out.status.success());
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("--source-account"), "{err}");
+    assert!(
+        !err.contains("failed to run"),
+        "a placeholder must be rejected before any ledger call: {err}"
+    );
 }
 
 #[test]
