@@ -11,10 +11,19 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# One local network per ref at a time: overlapping runs would fight over
+# container names and ports.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   local-network:
     name: live ledger integration
     runs-on: ubuntu-latest
+    # Container startup, ledger funding, deploy, and the full hook lifecycle
+    # historically complete well inside 15 minutes.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
