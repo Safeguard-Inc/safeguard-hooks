@@ -123,7 +123,7 @@ invariant suite (read-only enforcement, frozen-until-unfrozen, exhaustive
 oracle parity, out-of-scope never allows), and a deterministic
 random-sequence property suite that drives thousands of admin/hook
 interleavings against an enforcement oracle. The contract compiles to
-WebAssembly (`wasm32v1-none`) and 146 tests pass across the workspace.
+WebAssembly (`wasm32v1-none`) and 152 tests pass across the workspace.
 
 The enforcement lifecycle is additionally proven against a **real Soroban
 ledger**: `scripts/integration-local.sh` deploys the contract on the
