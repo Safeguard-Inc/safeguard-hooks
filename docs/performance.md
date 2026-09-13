@@ -163,6 +163,26 @@ on — it is a correctness guarantee, not a cost to trade away). Effect:
 | `before_register` | 10,039 | 8,866 (**−12%**) |
 | state reads (`initialized`, `config`, …) | ~3–4k | unchanged (noise) |
 
+The profile above is the durable result; the **absolute byte counts are
+not**. `rust-toolchain.toml` tracks the floating `stable` channel, and each
+compiler release reshuffles wasm codegen, so a size recorded once will not
+reproduce later. The `after` figures above were measured on the stable
+release of 2026-09-08. Re-measured on Rust 1.98.1, `sample_policy.wasm` is
+unchanged at 2,485 B while `compliance_hooks.wasm` builds to 27,210 B — the
+larger contract moved by ~6% with the compiler alone and no source change.
+The stroop figures are unaffected in kind: they are ledger-metered
+instructions, and the ordering and the short-circuit guarantees beside them
+are what the optimization actually buys. Treat every byte count here as a
+point-in-time observation and re-measure before quoting one.
+
+To re-measure on the toolchain you have checked out:
+
+```bash
+rustc --version   # record this alongside any number you publish
+cargo build --locked --release --target wasm32v1-none -p compliance-hooks -p sample-policy
+stat -c '%n %s bytes' target/wasm32v1-none/release/*.wasm
+```
+
 The cross-contract policy call remains the dominant term in the allowed
 paths — that is the architecture's cost, and it also dropped because the
 policy side optimized its own `is_authorized` (see safeguard-policy
