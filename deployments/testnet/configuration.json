@@ -2,14 +2,14 @@
   "network": "testnet",
   "rpc_url": "https://soroban-testnet.stellar.org",
   "network_passphrase": "Test SDF Network ; September 2015",
-  "hooks_contract_id": "CAZZCML33QERACJ2K3QLENYNXEEPYQQIGN7SPXPYQV4DWZYB44JABW3Q",
+  "hooks_contract_id": "CC7UKMCY3J7LB2WGU6D3MPRSSK3RKEC6MEXJJKOXRPTZAPRNXKPVPKPN",
   "policy": {
-    "contract_id": "CCOEMBBUNF3WO24YCH637G2TKCFGBN6QMUSUB4ODPLPGF4BUS64WPR47",
+    "contract_id": "CDVME6OPYZO6RAIWRFKLI3ACZHPNZK7GDBIX7YSIER3QLA2SO47QX5IB",
     "note": "safeguard-policy deployment (DEFINE polyrepo) wired to the documented is_authorized(account, token) seam; policy id 'enforcement-default' v1 active — a rule set decidable from on-chain state only."
   },
   "sac_passthrough": false,
   "admin": {
-    "public_key": "GB3P6MQJIYFNWFQ5SU3PDUWOIBKKS5O7QF5LMIPQ3WQBXSXK4LNFIRO3",
+    "public_key": "GC2U3YSOCCLOHKADJ4INRHJDFVDMGZX3WWTPH7V62MQWETUD4LR4HDCA",
     "secret_key_env": "SAFEGUARD_ADMIN_SK"
   },
   "tokens": [
@@ -19,5 +19,5 @@
       "sac_contract_id": null
     }
   ],
-  "description": "Live Testnet deployment verified end-to-end on 2026-09-08: DEFINE (safeguard-policy) + ENFORCE (compliance-hooks) wired together. Verified live: compliant operations allowed through the real policy contract; frozen parties revert Error(Contract, #4); a policy-denied party (suspended identity record) reverts #3; unbound tokens revert #2; the real getEvents stream parses cleanly through safeguard-audit's verified wire model. Redeployed 2026-09-08 with the gas-optimized wasm (release profile: opt-z, LTO, codegen-units 1, panic=abort; docs/performance.md): enforcement gates cost ~10-12% less per operation. The admin secret key lives in the SAFEGUARD_ADMIN_SK env var only — never in this file. Confidential Tokens on Stellar are a developer preview; treat this deployment as rehearsal, not production."
+  "description": "Live Testnet deployment, redeployed and verified end-to-end on 2026-09-13. Every id above was read back from the live network after deployment. Verified live on this contract: initialized with the configured admin, config_version 1, the policy gate pointing at the safeguard-policy contract id above, sac_passthrough false, and the sandbox token bound; the admin lifecycle was then exercised for real -- freeze and unfreeze on the bound token both succeeded against the ledger. Earlier verification, 2026-09-08: DEFINE (safeguard-policy) + ENFORCE (compliance-hooks) wired together. Verified live: compliant operations allowed through the real policy contract; frozen parties revert Error(Contract, #4); a policy-denied party (suspended identity record) reverts #3; unbound tokens revert #2; the real getEvents stream parses cleanly through safeguard-audit's verified wire model. Redeployed 2026-09-08 with the gas-optimized wasm (release profile: opt-z, LTO, codegen-units 1, panic=abort; docs/performance.md): enforcement gates cost ~10-12% less per operation. The admin secret key lives in the SAFEGUARD_ADMIN_SK env var only — never in this file. Confidential Tokens on Stellar are a developer preview; treat this deployment as rehearsal, not production."
 }
