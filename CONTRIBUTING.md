@@ -52,6 +52,24 @@ test.
   change.
 * Keep the working tree clean before pushing.
 
+## Cutting a release
+
+1. Record the version under CHANGELOG.md's `Unreleased` heading, dated
+   today, and commit that on its own.
+2. Rehearse first: dispatch the `release` workflow from the Actions tab
+   (or `gh workflow run release`). Its full gate runs against `main`
+   without publishing anything — the pipeline proves itself before the
+   tag exists, not for the first time at the tag.
+3. When the rehearsal is green, tag and push: `git tag vX.Y.Z && git
+   push origin vX.Y.Z`. The pipeline re-runs the full gate on the tag,
+   builds both contracts in release mode, and attaches
+   `compliance-hooks.wasm` and `sample-policy.wasm` to the GitHub
+   release.
+
+The attached wasm binaries are what deployments install (see
+`docs/deployment.md`), so never treat a green `main` build as a
+substitute for the tagged artifacts.
+
 ## Reporting issues
 
 * **Bugs and security issues:** `SECURITY.md` (private report for
