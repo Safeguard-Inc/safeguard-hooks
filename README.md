@@ -40,6 +40,15 @@ safeguard-policy  safeguard-hooks  safeguard-audit
 [live Testnet contracts](https://safeguard-docs.vercel.app/docs/contracts) ·
 [error codes](https://github.com/Safeguard-Inc/safeguard-docs/blob/main/docs/error-codes.md)
 
+[![Pitch video: five minutes on Safeguard, from the problem to the live Testnet deployment](https://safeguard-docs.vercel.app/assets/video/safeguard-pitch-poster.jpg)](https://safeguard-docs.vercel.app/assets/video/safeguard-pitch.mp4)
+
+**▶ Watch the five-minute pitch** — the problem, the architecture, the live
+engine, and this layer's role in it. Built from the docs repository
+([pipeline](https://github.com/Safeguard-Inc/safeguard-docs/tree/main/video)),
+not edited by hand.
+
+<a href="https://safeguard-docs.vercel.app/assets/video/safeguard-pitch.mp4"><img src="https://img.shields.io/badge/pitch_video-5_minutes-4ade9b" alt="Pitch video, five minutes"></a>
+
 > **Quick links:** [live hooks contract](#live-testnet-deployment) ·
 > [rejection codes](docs/errors.md) · [performance](docs/performance.md)
 > · [open issues](https://github.com/Safeguard-Inc/safeguard-hooks/issues)
