@@ -89,7 +89,7 @@ contracts/
   compliance-hooks/    Soroban enforcement contract — all six hooks + freeze ops
   compliance-hooks/tests/  security, invariant, and property suites
   sample-policy/       Demo implementation of the safeguard-policy wire contract
-cli/                   Operator CLI (init/configure/bind/unbind/freeze/unfreeze/show/errors/deploy)
+cli/                   Operator CLI (init/configure/bind/unbind/freeze/unfreeze/show/verify/errors/deploy)
 scripts/
   integration-local.sh Live-ledger integration against the containerized local network
   check-schema.sh      Validates schemas + fixtures/examples/deployments
@@ -131,21 +131,25 @@ rather than described here:
 | ---------------- | ------------------------------------------------------------------ |
 | Network          | Stellar Testnet (`Test SDF Network ; September 2015`)              |
 | RPC              | `https://soroban-testnet.stellar.org`                               |
-| Hooks contract   | `CAZZCML33QERACJ2K3QLENYNXEEPYQQIGN7SPXPYQV4DWZYB44JABW3Q`          |
-| Policy contract  | `CCOEMBBUNF3WO24YCH637G2TKCFGBN6QMUSUB4ODPLPGF4BUS64WPR47`          |
+| Hooks contract   | `CC7UKMCY3J7LB2WGU6D3MPRSSK3RKEC6MEXJJKOXRPTZAPRNXKPVPKPN`          |
+| Policy contract  | `CDVME6OPYZO6RAIWRFKLI3ACZHPNZK7GDBIX7YSIER3QLA2SO47QX5IB`          |
 | Bound token      | `sandbox-token` (`GC2O7PSLQXL24R7EECSMZC7YD5IB7QP5COX2FHC52SVKREEDSX2WWPWV`) |
-| Admin public key | `GB3P6MQJIYFNWFQ5SU3PDUWOIBKKS5O7QF5LMIPQ3WQBXSXK4LNFIRO3`         |
+| Admin public key | `GC2U3YSOCCLOHKADJ4INRHJDFVDMGZX3WWTPH7V62MQWETUD4LR4HDCA`         |
 | Bring up         | `safeguard-hooks deploy --config deployments/testnet/configuration.json` |
+| Smoke test       | `safeguard-hooks verify --config deployments/testnet/configuration.json` |
 
 The admin **secret** key is never stored in the repository — deployment
 reads it from the `SAFEGUARD_ADMIN_SK` environment variable. Confidential
 Tokens on Stellar are a developer preview, so treat this deployment as a
 rehearsal rather than production.
 
-Verified live on this deployment: compliant operations pass through the real
-policy contract, frozen parties revert `Error(Contract, #4)`, a policy-denied
-party reverts `#3`, an unbound token reverts `#2`, and the real `getEvents`
-stream parses through `safeguard-audit`'s wire model. Per-function cost is in
+Verified live on this deployment: an unbound token reverts `#2`, a frozen
+party reverts `#4`, and `verify --account` observes the real policy contract
+returning `#3 policy_denied` — **10 of 10 checks pass with no secret key in
+the environment**. The read-only smoke test is
+`safeguard-hooks verify` (`docs/deployment.md`); it exits non-zero when the
+deployment is not actually enforcing, so it is safe to run in CI or during
+an incident. Per-function cost is in
 [`docs/performance.md`](docs/performance.md); the operator walkthrough is in
 [`docs/testnet.md`](docs/testnet.md).
 
@@ -164,7 +168,7 @@ invariant suite (read-only enforcement, frozen-until-unfrozen, exhaustive
 oracle parity, out-of-scope never allows), and a deterministic
 random-sequence property suite that drives thousands of admin/hook
 interleavings against an enforcement oracle. The contract compiles to
-WebAssembly (`wasm32v1-none`) and 152 tests pass across the workspace.
+WebAssembly (`wasm32v1-none`) and 163 tests pass across the workspace.
 
 The enforcement lifecycle is additionally proven against a **real Soroban
 ledger**: `scripts/integration-local.sh` deploys the contract on the

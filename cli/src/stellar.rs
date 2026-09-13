@@ -30,7 +30,8 @@ pub struct RunOutcome {
 }
 
 impl RunOutcome {
-    fn combined(&self) -> String {
+    /// The invocation's stdout and stderr as one document, for scanning.
+    pub fn combined(&self) -> String {
         format!("{}\n{}", self.stdout, self.stderr)
     }
 
@@ -64,6 +65,62 @@ impl Runner for Stellar {
             stderr: String::from_utf8_lossy(&out.stderr).into_owned(),
         })
     }
+}
+
+/// Builds `stellar contract invoke` argv for a **read-only, secret-free**
+/// view of a contract.
+///
+/// Two details matter and are easy to get wrong:
+///
+/// * the source is passed as `--source-account <G…>` — a bare public key,
+///   not an identity or secret. stellar CLI simulates reads without a
+///   signature, so a verification pass needs no key material at all;
+/// * `--send=no` pins the call to simulation even if a future change made
+///   an ostensibly read-only function write or emit, so `verify` can never
+///   submit a transaction by accident.
+///
+/// This is deliberately separate from [`invoke_args`], which is the signing
+/// path (`--source <identity-or-secret>`).
+pub fn view_args(
+    source_account: &str,
+    contract_id: &str,
+    network: &str,
+    func: &str,
+    params: &[(&str, String)],
+) -> Vec<String> {
+    let mut args = vec![
+        "contract".into(),
+        "invoke".into(),
+        "--id".into(),
+        contract_id.to_string(),
+        "--source-account".into(),
+        source_account.to_string(),
+        "--send=no".into(),
+        "--network".into(),
+        network.to_string(),
+        "--".into(),
+        func.to_string(),
+    ];
+    for (name, value) in params {
+        args.push(format!("--{name}"));
+        args.push(value.clone());
+    }
+    args
+}
+
+/// Whether a string is a plausible Stellar account address (`G` + 55
+/// base32 chars) or contract id (`C` + 55 base32 chars).
+///
+/// Used to reject placeholder values (the example deployment records use
+/// `G…ADMIN`-style ellipses) before they reach the ledger, so a `verify` run
+/// against an unfilled config fails with a clear message instead of an
+/// opaque CLI parse error.
+pub fn is_stellar_address(value: &str) -> bool {
+    value.len() == 56
+        && (value.starts_with('G') || value.starts_with('C'))
+        && value
+            .chars()
+            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
 }
 
 // ################## ARGUMENT VALUE FORMATTING ##################

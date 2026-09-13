@@ -51,7 +51,21 @@ specifics are:
    in every command of `docs/deployment.md`. Record the returned contract id
    (`C…`); a token later points its compliance-hook address at it.
 
-4. **Verify the wiring on-ledger**, mirroring the local assertions:
+4. **Verify the deployment**, with the CLI's read-only smoke test — it
+   needs no secret key, so it also runs from a reviewer's or auditor's
+   machine:
+
+   ```bash
+   cargo build -p safeguard-hooks
+   safeguard-hooks --config deployments/testnet/configuration.json verify
+   # Add a real decision sample (allowed, or the exact rejection code):
+   safeguard-hooks --config deployments/testnet/configuration.json \
+     verify --account "$G_ACCOUNT"
+   ```
+
+   Exits `0` only when every check passes; `1` otherwise
+   (`docs/deployment.md` lists what each check protects). The raw-on-ledger
+   equivalents, mirroring the local assertions:
 
    ```bash
    stellar contract invoke --id "$HOOKS" --source admin --network testnet \

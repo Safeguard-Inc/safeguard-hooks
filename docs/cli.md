@@ -42,6 +42,7 @@ tool's state.
 | `freeze --token <alias\|id> --account <G…>` | Freezes the account on the token | admin |
 | `unfreeze --token <alias\|id> --account <G…>` | Unfreezes the account on the token | admin |
 | `show [--token <alias\|id>] [--account <G…>]` | Reads admin, initialization, config, bindings, and freeze flags (simulated reads) | — |
+| `verify [--source-account <G…>] [--account <G…>]` | Post-deployment smoke test: PASS/FAIL per check, exits non-zero on any failure; needs **no secret key** | — |
 | `errors [code]` | Lists or decodes the rejection codes (`docs/errors.md`) — offline | — |
 
 `--token` accepts an alias from the config's `tokens` list or a bare
@@ -53,6 +54,12 @@ tool's state.
   transaction; the CLI turns `Error(Contract, #N)` into the stable reason
   name from `safeguard-hook-core` (e.g. `#4 account_frozen`), pointing at
   `docs/errors.md` for remediation.
+* **`verify` never needs a secret.** It simulates every read from a bare
+  `G…` public key with `--send=no` (`stellar::view_args`), so a reviewer, a
+  CI job, or an incident responder can smoke-test a deployment they hold no
+  key for. It also cannot submit a transaction by accident — even if a
+  future change gave a read a ledger write, `--send=no` still only
+  simulates.
 * **Reads are simulations.** `show` never sends a transaction; stellar CLI
   simulates read-only calls and the CLI prints the value.
 * **Token resolution is local.** An unknown alias fails before any ledger
@@ -63,6 +70,15 @@ tool's state.
 ## Examples
 
 ```bash
+# Smoke-test a live deployment (read-only, no key needed): exits non-zero
+# if the deployment is not actually enforcing.
+safeguard-hooks --config deployments/testnet/configuration.json verify
+
+# Add --account to sample a real enforcement decision on each bound token
+# (allowed, or the exact rejection code the gate produced):
+safeguard-hooks --config deployments/testnet/configuration.json \
+  verify --account "$G_ACCOUNT"
+
 # Bring a fresh deployment up from the deployments config (deployment
 # tooling) and record the minted ids back into it:
 safeguard-hooks deploy \

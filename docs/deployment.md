@@ -125,6 +125,75 @@ bindings, and freeze flags. It cannot move funds, mint, or bypass the policy
 — and a frozen or policy-blocked account cannot be helped by any
 configuration the admin writes (see the invariants in `docs/security.md`).
 
+## Verify a deployment
+
+`docs/deployment.md` and `deployments/<env>/` describe what *should* be
+running; `verify` reports what *is*. It is read-only, needs **no secret
+key**, and exits non-zero when any check fails, so it works from a
+reviewer's machine, a CI job, or an incident-response shell that holds no
+key material:
+
+```bash
+safeguard-hooks --config deployments/testnet/configuration.json verify
+```
+
+```text
+safeguard-hooks verify — read-only, no secret key
+network: testnet
+hooks contract: C…
+source account: G… (simulated, never signs)
+
+  PASS  contract reachable
+  PASS  initialized
+  PASS  admin matches the config
+  PASS  compliance configuration present
+        policy gate → C…
+  PASS  recorded policy matches the contract
+  PASS  config_version
+        config_version = 1
+  PASS  state_version
+        state_version = 1
+  PASS  token sandbox-token bound
+  PASS  fail-closed probe
+        before_transfer on unbound token G… refused with #2 unbound_token
+  SKIP  gate sample
+        pass --account G… to observe a real enforcement decision
+
+9 passed, 0 failed, 1 skipped
+```
+
+What each check is protecting:
+
+* **contract reachable** — the recorded contract id resolves on the recorded
+  network. The first read is the probe; if it fails the report stops there
+  rather than cascading.
+* **initialized** — `initialize` ran, so the admin seat is claimed. An
+  uninitialized contract fails closed on every hook (`#9`).
+* **admin matches the config** — the on-chain admin equals
+  `admin.public_key`. A mismatch means the record is stale.
+* **compliance configuration present** — `set_config` ran. Until it has, the
+  contract is inert and every hook reverts `#9`.
+* **recorded policy matches the contract** — the live `policy` equals the
+  config's recorded policy, catching a reconfiguration that never made it
+  back into the deployment record.
+* **config_version / state_version** — both are ≥ 1, the on-chain anchors
+  `safeguard-audit` pairs with events.
+* **token <alias> bound** — every configured token really is in enforcement
+  scope.
+* **fail-closed probe** — the contract refuses an operation on an unbound
+  token with `#2 unbound_token`. This is the central safety promise, so it
+  is probed directly: the admin address is used as the known-out-of-scope
+  target, and the check fails loudly if that address is somehow bound.
+* **gate sample** (needs `--account G…`) — simulates a real
+  `before_transfer` on every bound token and reports the decision. Being
+  *refused* is a healthy result (the gate is live and refusing); being
+  *unable to decide* (`#9` invalid configuration, `#10` policy unavailable)
+  is a failure, because it means a fail-closed outage.
+
+Nothing here signs or sends: every call goes out as
+`--source-account <G…> --send=no`, so the command is safe to run against a
+production deployment during an incident.
+
 ## Automating
 
 * **One-command bring-up (CLI).** Once the wasm artifacts are built,
@@ -133,6 +202,10 @@ configuration the admin writes (see the invariants in `docs/security.md`).
   optionally deploys/reuses a policy, and runs `initialize` → `set_config` →
   `bind_token` for every configured token; `--save` records the freshly
   minted ids back into the config (`docs/cli.md`).
+* **Post-deployment smoke test (CLI).** `safeguard-hooks verify` answers
+  "is the thing I just deployed actually enforcing?" read-only and without a
+  key, and exits non-zero when it is not — wire it into your release
+  checklist right after `deploy`.
 * **Live-ledger rehearsal (script).** `scripts/integration-local.sh` runs
   the entire lifecycle against the containerized local network with
   assertions on every revert code — a zero-credential rehearsal of the
