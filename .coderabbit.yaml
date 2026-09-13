@@ -1,0 +1,111 @@
+# CodeRabbit configuration for safeguard-hooks.
+#
+# CI already enforces fmt, clippy with -D warnings, the whole test suite,
+# the contract wasm build, the coverage gate, the schema checks and the
+# error-catalog parity check. CodeRabbit therefore concentrates on the
+# invariants those gates cannot see: fail-closed enforcement, contract
+# error-code stability, and supply-chain posture.
+language: en-US
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  review_status: true
+  collapse_walkthrough: false
+  sequence_diagrams: true
+  poem: false
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+    base_branches:
+      - main
+
+  path_filters:
+    - "!**/target/**"
+    - "!**/Cargo.lock"
+    - "!CHANGELOG.md"
+
+  path_instructions:
+    - path: "contracts/compliance-hooks/src/**"
+      instructions: >-
+        This is the enforcement contract and it must fail closed. Flag any
+        branch where an uninitialised contract, an unreachable or erroring
+        policy contract, an unbound token, an unverified account, an
+        unknown status code, or a missing registry entry resolves to
+        allowed. New errors must be appended to ContractError with a fresh
+        number -- codes are public ABI and are never renumbered, because
+        they appear in reverted transactions and in stored audit records.
+        Every new variant needs a matching RejectionReason and an entry in
+        docs/errors.md.
+    - path: "contracts/compliance-hooks/tests/**"
+      instructions: >-
+        Contracts are security-critical. Property and fuzz tests must
+        exercise the fail-closed direction, not just the happy path. Flag
+        new public entry points that ship without a test proving the
+        denial case, and any test that asserts a panic message instead of
+        an error code.
+    - path: "crates/compliance/**"
+      instructions: >-
+        The enforcement decision engine. The decision must be a pure
+        function of the inputs and the bound policy: flag any hidden state,
+        any ordering dependence between gates, and any path that performs a
+        registry or token-binding lookup a disabled rule does not need.
+        This is the hot per-operation path, so call out redundant host
+        calls and storage reads.
+    - path: "crates/storage/**"
+      instructions: >-
+        On-chain storage keys and layout. Changing a key's shape or the
+        serialized form of a stored value is a migration, not a refactor:
+        flag it and require a version guard so an upgraded contract cannot
+        misread data written by the previous one.
+    - path: "crates/policy-client/**"
+      instructions: >-
+        The wire seam to safeguard-policy. The interface is versioned and
+        one-way; flag any change that silently alters the request or
+        response shape, and any decode path that tolerates a malformed or
+        unexpected reply rather than failing closed.
+    - path: ".github/workflows/**"
+      instructions: >-
+        Workflows are security-sensitive. Third-party actions must stay
+        pinned to a full commit SHA with the version in a trailing comment;
+        unpinned `@v*` references are a supply-chain defect. Check that
+        permissions follow least privilege and that every job has a bounded
+        timeout-minutes.
+
+  tools:
+    clippy:
+      enabled: true
+    actionlint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    markdownlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    semgrep:
+      enabled: true
+    checkov:
+      enabled: false
+    ruff:
+      enabled: true
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  pull_requests:
+    scope: auto
