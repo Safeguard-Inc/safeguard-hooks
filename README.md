@@ -110,6 +110,37 @@ deployment keeps one `configuration.json` per environment rather than
 splitting ids across `contracts.json`/`policy.json`
 (`deployments/README.md`).
 
+## Live Testnet deployment
+
+The hooks contract is deployed to Stellar Testnet and wired to the real
+policy contract. The deployment is recorded in
+[`deployments/testnet/configuration.json`](deployments/testnet/configuration.json)
+rather than described here:
+
+|                  |                                                                    |
+| ---------------- | ------------------------------------------------------------------ |
+| Network          | Stellar Testnet (`Test SDF Network ; September 2015`)              |
+| RPC              | `https://soroban-testnet.stellar.org`                               |
+| Hooks contract   | `CAZZCML33QERACJ2K3QLENYNXEEPYQQIGN7SPXPYQV4DWZYB44JABW3Q`          |
+| Policy contract  | `CCOEMBBUNF3WO24YCH637G2TKCFGBN6QMUSUB4ODPLPGF4BUS64WPR47`          |
+| Bound token      | `sandbox-token` (`GC2O7PSLQXL24R7EECSMZC7YD5IB7QP5COX2FHC52SVKREEDSX2WWPWV`) |
+| Admin public key | `GB3P6MQJIYFNWFQ5SU3PDUWOIBKKS5O7QF5LMIPQ3WQBXSXK4LNFIRO3`         |
+| Bring up         | `safeguard-hooks deploy --config deployments/testnet/configuration.json` |
+
+The admin **secret** key is never stored in the repository — deployment
+reads it from the `SAFEGUARD_ADMIN_SK` environment variable. Confidential
+Tokens on Stellar are a developer preview, so treat this deployment as a
+rehearsal rather than production.
+
+Verified live on this deployment: compliant operations pass through the real
+policy contract, frozen parties revert `Error(Contract, #4)`, a policy-denied
+party reverts `#3`, an unbound token reverts `#2`, and the real `getEvents`
+stream parses through `safeguard-audit`'s wire model. Per-function cost is in
+[`docs/performance.md`](docs/performance.md); the operator walkthrough is in
+[`docs/testnet.md`](docs/testnet.md).
+
+---
+
 ## Status: Phases 1–4 complete, spec surface closed
 
 Phase 1 (the foundation), Phase 2, the Phase 3 hardening suites, and
