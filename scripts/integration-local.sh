@@ -95,7 +95,7 @@ for name in admin alice bob token; do
 done
 
 fund() { # $1 identity name
-  local addr code attempt
+  local addr code
   addr="$("$STELLAR" keys address "$1")"
   # The friendbot is part of the local container stack but may not be ready
   # the instant the container reports healthy — and it can answer with a
@@ -105,7 +105,7 @@ fund() { # $1 identity name
   # else (connection failure, 5xx, 429) retries until the budget runs out;
   # giving up early used to surface much later as "Account not found" at
   # deploy time, which read as a contract bug rather than a warm-up race.
-  for attempt in $(seq 1 20); do
+  for _ in $(seq 1 20); do
     code="$(curl -s -o /dev/null -w '%{http_code}' "$FRIENDBOT_URL?addr=$addr" 2>/dev/null || echo 000)"
     case "$code" in
       2*) return 0 ;;                       # freshly funded
