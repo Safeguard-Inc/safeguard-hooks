@@ -163,25 +163,44 @@ on — it is a correctness guarantee, not a cost to trade away). Effect:
 | `before_register` | 10,039 | 8,866 (**−12%**) |
 | state reads (`initialized`, `config`, …) | ~3–4k | unchanged (noise) |
 
-The profile above is the durable result; the **absolute byte counts are
-not**. `rust-toolchain.toml` tracks the floating `stable` channel, and each
-compiler release reshuffles wasm codegen, so a size recorded once will not
-reproduce later. The `after` figures above were measured on the stable
-release of 2026-09-08. Re-measured on Rust 1.98.1, `sample_policy.wasm` is
-unchanged at 2,485 B while `compliance_hooks.wasm` builds to 27,210 B — the
-larger contract moved by ~6% with the compiler alone and no source change.
-The stroop figures are unaffected in kind: they are ledger-metered
-instructions, and the ordering and the short-circuit guarantees beside them
-are what the optimization actually buys. Treat every byte count here as a
-point-in-time observation and re-measure before quoting one.
+The profile above is the durable result. The **absolute byte counts** are
+now pinned too, which they were not when the table above was written: that
+comparison was measured on the floating `stable` of 2026-09-08, and the
+compiler alone then moved `compliance_hooks.wasm` from 25,687 B to 27,210 B
+(~6%) with no source change. Treat the percentages above as direction, not
+precision.
 
-To re-measure on the toolchain you have checked out:
+### Toolchain pin (2026-09-13)
+
+`rust-toolchain.toml` pins `channel = "1.98.1"`, and CI installs that pin
+through `scripts/install-toolchain.sh`, which reads the file and fails if the
+version that resolves is not the pin. Current sizes, measured on the pin:
+
+| Artefact | Bytes |
+| -------- | ----: |
+| `compliance_hooks.wasm` | 27,210 |
+| `sample_policy.wasm` | 2,485 |
+
+`sample_policy.wasm` is unchanged from the historical table;
+`compliance_hooks.wasm` is 27,210 B on the pin and stays there, which is the
+point of pinning — a reviewer can now reproduce the figure instead of
+finding a different one.
+
+The stroop figures are less toolchain-sensitive in kind: they are
+ledger-metered instructions, and the gate ordering and short-circuit
+guarantees beside them are what the optimization actually buys.
+
+To re-measure on the pin:
 
 ```bash
-rustc --version   # record this alongside any number you publish
+bash scripts/install-toolchain.sh   # installs exactly the pinned release
 cargo build --locked --release --target wasm32v1-none -p compliance-hooks -p sample-policy
 stat -c '%n %s bytes' target/wasm32v1-none/release/*.wasm
 ```
+
+Bumping the pin is a one-line change to `rust-toolchain.toml` (Dependabot
+proposes it); the procedure and the requirement to update this table in the
+same change are documented in that file.
 
 The cross-contract policy call remains the dominant term in the allowed
 paths — that is the architecture's cost, and it also dropped because the

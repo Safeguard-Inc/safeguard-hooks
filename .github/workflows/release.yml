@@ -27,10 +27,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install Rust toolchain
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup component add --toolchain stable rustfmt clippy
+      # The release artefact is a published byte count: it must be built by
+      # the pinned compiler, not by whatever `stable` is that morning.
+      - name: Install the pinned Rust toolchain
+        run: scripts/install-toolchain.sh --component rustfmt --component clippy
 
       - name: Format
         run: cargo fmt --all -- --check
@@ -59,10 +59,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install Rust toolchain with wasm target
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup target add --toolchain stable wasm32v1-none
+      - name: Install the pinned Rust toolchain
+        run: scripts/install-toolchain.sh
 
       - name: Build contracts (release)
         run: |

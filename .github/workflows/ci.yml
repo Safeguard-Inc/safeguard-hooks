@@ -70,10 +70,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install Rust toolchain
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup component add --toolchain stable rustfmt clippy
+      # Installs the exact release pinned in rust-toolchain.toml and fails if
+      # the version that resolves is not the pin, so a floating `stable`
+      # cannot silently build the release the measurements are attributed to.
+      - name: Install the pinned Rust toolchain
+        run: scripts/install-toolchain.sh --component rustfmt --component clippy
 
       - uses: taiki-e/install-action@fa23953489c080190314742a9b907f8e97c6767c # v2.87.10
         with:
@@ -107,10 +108,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install Rust toolchain
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup component add --toolchain stable llvm-tools-preview
+      # llvm-tools-preview is CI-only (the coverage job); it is not in the
+      # toolchain file because a contributor does not need it.
+      - name: Install the pinned Rust toolchain
+        run: scripts/install-toolchain.sh --component llvm-tools-preview
 
       - uses: taiki-e/install-action@fa23953489c080190314742a9b907f8e97c6767c # v2.87.10
         with:
@@ -126,10 +127,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install Rust toolchain with wasm target
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup target add --toolchain stable wasm32v1-none
+      - name: Install the pinned Rust toolchain
+        run: scripts/install-toolchain.sh
 
       - name: Build contracts
         run: cargo build --locked --target wasm32v1-none -p compliance-hooks -p sample-policy

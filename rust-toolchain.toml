@@ -1,5 +1,35 @@
+# Rust toolchain, pinned to an exact release.
+#
+# Why an exact version, not `stable`: every number published in
+# `docs/performance.md` — wasm byte counts above all — is a property of the
+# compiler as much as of the source. Under a floating `stable` the same source
+# built to 25,687 B one week and 27,210 B the next (~6%) with no source
+# change, so a published figure could not be reproduced by a reviewer or a
+# contributor. The pin makes a measurement a claim someone can check.
+#
+# Bumping the pin (one line, and the only line that should ever change here):
+#
+#   1. edit `channel` below to the new release (Dependabot proposes bumps);
+#   2. run `cargo test --locked --workspace` and the wasm build:
+#        bash scripts/install-toolchain.sh
+#        cargo build --locked --release --target wasm32v1-none \
+#          -p compliance-hooks -p sample-policy
+#   3. re-measure and update the sizes in `docs/performance.md` in the SAME
+#      change — the numbers and the pin belong to each other;
+#   4. note the release next to the measurement so the two stay in step.
+#
+# CI installs this pin through `scripts/install-toolchain.sh`, which reads
+# `channel` from this file and fails if the resolved version is not the pin.
+# A workflow that installs some other channel cannot pass the gate.
+#
+# - soroban-sdk 27 requires Rust >= 1.91
+# - rustfmt and clippy are used by the CI gate and installed automatically for
+#   contributors who use rustup
+# - wasm32v1-none is the Soroban target (the Soroban environment does not
+#   support wasm32-unknown-unknown on Rust 1.82+); declaring it here means
+#   `rustup` installs it with the toolchain instead of needing a manual step
 [toolchain]
-channel = "stable"
+channel = "1.98.1"
 components = ["rustfmt", "clippy"]
 targets = ["wasm32v1-none"]
 profile = "minimal"
