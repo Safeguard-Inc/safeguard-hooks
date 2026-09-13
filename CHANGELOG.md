@@ -9,6 +9,27 @@ single-improvement commits.
 
 ## [Unreleased]
 
+### Pipeline and release hardening — batch 2
+
+- **Bounded CI runtime** — every job carries an explicit
+  `timeout-minutes` (15–25, including the live-ledger integration)
+  instead of GitHub's 6-hour default; a hung run now fails visibly in
+  minutes.
+- **Concurrency groups** — one active run per (workflow, ref) across
+  all five workflows; the local-network job can no longer race itself
+  over container names and ports.
+- **Workflow validation gate** — actionlint (pinned release, verified
+  against the upstream SHA-256 checksum) runs as the first CI job, so a
+  workflow file GitHub would reject at validation time can no longer
+  reach `main` silently.
+- **Shell script gate** — `bash -n` + `shellcheck --severity=style`
+  over every script; the funding retry loop's unused `attempt`
+  variable fixed as the first finding.
+- **Rehearsable releases** — `release.yml` gains `workflow_dispatch`
+  (gate-only rehearsal) and a hard `github.ref_type == 'tag'` gate on
+  the wasm publish job; the release procedure is documented in
+  `CONTRIBUTING.md`.
+
 ### Security — enforcement bootstrap and state versioning
 
 - **`initialize` requires the prospective admin's authorization** — a fresh
